@@ -20,7 +20,7 @@ static const char* inputIcon[inputCount] = { ":/help/dpad_up.svg", ":/help/dpad_
 
 using namespace Eigen;
 
-#define HOLD_TO_SKIP_MS 5000
+#define HOLD_TO_SKIP_MS 1000
 
 GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), 
 	mBackground(window, ":/frame.png"), mGrid(window, Vector2i(1, 7)), 
@@ -172,7 +172,7 @@ void GuiInputConfig::onSizeChanged()
 	mGrid.setRowHeightPerc(2, mSubtitle1->getFont()->getHeight() / mSize.y());
 	mGrid.setRowHeightPerc(3, mSubtitle2->getFont()->getHeight() / mSize.y());
 	//mGrid.setRowHeightPerc(4, 0.03f);
-	mGrid.setRowHeightPerc(5, (mList->getRowHeight(0) * 5 + 2) / mSize.y());
+	mGrid.setRowHeightPerc(5, 0.65f);
 	mGrid.setRowHeightPerc(6, mButtonGrid->getSize().y() / mSize.y());
 }
 
