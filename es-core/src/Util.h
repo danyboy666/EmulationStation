@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 
 #include <string>
 #include <Eigen/Dense>
@@ -16,7 +17,6 @@ Eigen::Vector3f roundVector(const Eigen::Vector3f& vec);
 Eigen::Vector2f roundVector(const Eigen::Vector2f& vec);
 
 #if defined(_WIN32) && _MSC_VER < 1800
-float round(float num);
 #endif
 
 std::string getCanonicalPath(const std::string& str);

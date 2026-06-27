@@ -722,7 +722,7 @@ float Font::getNewlineStartOffset(const std::string& text, const unsigned int& c
 
 inline float font_round(float v)
 {
-	return round(v);
+	return std::round(v);
 }
 
 TextCache* Font::buildTextCache(const std::string& text, Eigen::Vector2f offset, unsigned int color, float xLen, Alignment alignment, float lineSpacing)

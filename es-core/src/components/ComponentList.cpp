@@ -167,10 +167,10 @@ void ComponentList::render(const Eigen::Affine3f& parentTrans)
 	Eigen::Vector3f dim(mSize.x(), mSize.y(), 0);
 	dim = trans * dim - trans.translation();
 	Renderer::pushClipRect(Eigen::Vector2i((int)trans.translation().x(), (int)trans.translation().y()), 
-		Eigen::Vector2i((int)round(dim.x()), (int)round(dim.y() + 1)));
+		Eigen::Vector2i((int)std::round(dim.x()), (int)std::round(dim.y() + 1)));
 
 	// scroll the camera
-	trans.translate(Eigen::Vector3f(0, -round(mCameraOffset), 0));
+	trans.translate(Eigen::Vector3f(0, -std::round(mCameraOffset), 0));
 
 	// draw our entries
 	std::vector<GuiComponent*> drawAfterCursor;

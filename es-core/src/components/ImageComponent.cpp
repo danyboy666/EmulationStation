@@ -69,7 +69,7 @@ void ImageComponent::resize()
 			}
 
 			// for SVG rasterization, always calculate width from rounded height (see comment above)
-			mSize[1] = round(mSize[1]);
+			mSize[1] = std::round(mSize[1]);
 			mSize[0] = (mSize[1] / textureSize.y()) * textureSize.x();
 
 		}else{
@@ -81,11 +81,11 @@ void ImageComponent::resize()
 			// for SVG rasterization, we always calculate width from rounded height (see comment above)
 			if(!mTargetSize.x() && mTargetSize.y())
 			{
-				mSize[1] = round(mTargetSize.y());
+				mSize[1] = std::round(mTargetSize.y());
 				mSize[0] = (mSize.y() / textureSize.y()) * textureSize.x();
 			}else if(mTargetSize.x() && !mTargetSize.y())
 			{
-				mSize[1] = round((mTargetSize.x() / textureSize.x()) * textureSize.y());
+				mSize[1] = std::round((mTargetSize.x() / textureSize.x()) * textureSize.y());
 				mSize[0] = (mSize.y() / textureSize.y()) * textureSize.x();
 			}
 		}
@@ -94,7 +94,7 @@ void ImageComponent::resize()
 	if(svg)
 	{
 		// mSize.y() should already be rounded
-		svg->rasterizeAt((int)round(mSize.x()), (int)round(mSize.y()));
+		svg->rasterizeAt((int)std::round(mSize.x()), (int)std::round(mSize.y()));
 	}
 
 	onSizeChanged();
@@ -186,8 +186,8 @@ void ImageComponent::updateVertices()
 	Eigen::Vector2f topLeft(-mSize.x() * mOrigin.x(), -mSize.y() * mOrigin.y());
 	Eigen::Vector2f bottomRight(mSize.x() * (1 -mOrigin.x()), mSize.y() * (1 - mOrigin.y()));
 
-	const float width = round(bottomRight.x() - topLeft.x());
-	const float height = round(bottomRight.y() - topLeft.y());
+	const float width = std::round(bottomRight.x() - topLeft.x());
+	const float height = std::round(bottomRight.y() - topLeft.y());
 
 	topLeft[0] = floor(topLeft[0]);
 	topLeft[1] = floor(topLeft[1]);

@@ -87,7 +87,7 @@ namespace Renderer {
 
 	void drawRect(float x, float y, float w, float h, unsigned int color, GLenum blend_sfactor, GLenum blend_dfactor)
 	{
-		drawRect((int)round(x), (int)round(y), (int)round(w), (int)round(h), color, blend_sfactor, blend_dfactor);
+		drawRect((int)std::round(x), (int)std::round(y), (int)std::round(w), (int)std::round(h), color, blend_sfactor, blend_dfactor);
 	}
 
 	void drawRect(int x, int y, int w, int h, unsigned int color, GLenum blend_sfactor, GLenum blend_dfactor)

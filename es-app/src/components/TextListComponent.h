@@ -135,7 +135,7 @@ void TextListComponent<T>::render(const Eigen::Affine3f& parentTrans)
 	if(size() == 0)
 		return;
 
-	const float entrySize = round(font->getHeight(mLineSpacing));
+	const float entrySize = std::round(font->getHeight(mLineSpacing));
 
 	int startEntry = 0;
 

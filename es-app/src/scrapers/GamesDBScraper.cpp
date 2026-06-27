@@ -64,106 +64,70 @@ void thegamesdb_generate_scraper_requests(const ScraperSearchParams& params, std
 	}
 
 	LOG(LogInfo) << "TheGamesDB: " << url;
-	requests.push_back(std::unique_ptr<ScraperRequest>(new TheGamesDBRequest(results, url)));
+	requests.push(std::unique_ptr<ScraperRequest>(new TheGamesDBRequest(results, url)));
+}
+
+static std::string jsonGetString(const std::string& json, const std::string& key)
+{
+	size_t pos = json.find("\"" + key + "\"");
+	if(pos == std::string::npos) return "";
+	pos = json.find(":", pos);
+	if(pos == std::string::npos) return "";
+	pos = json.find("\"", pos + 1);
+	if(pos == std::string::npos) return "";
+	size_t end = json.find("\"", pos + 1);
+	if(end == std::string::npos) return "";
+	return json.substr(pos + 1, end - pos - 1);
 }
 
 void TheGamesDBRequest::process(const std::unique_ptr<HttpReq>& req, std::vector<ScraperSearchResult>& results)
 {
-	if(req->status() != 200)
+	if(req->status() != HttpReq::REQ_SUCCESS)
 	{
-		LOG(LogError) << "TheGamesDB: HTTP error " << req->status();
+		LOG(LogError) << "TheGamesDB: HTTP error " << req->getErrorMsg();
 		return;
 	}
 
-	const std::string& content = req->content();
-
-	// Parse JSON response
-	// TheGamesDB v1 returns JSON with game data
+	const std::string content = req->getContent();
 	size_t pos = 0;
+
 	while((pos = content.find("\"game_title\"", pos)) != std::string::npos)
 	{
+		size_t blockStart = pos;
+		size_t blockEnd = content.find("}", pos);
+		if(blockEnd == std::string::npos) break;
+
+		std::string block = content.substr(blockStart, blockEnd - blockStart + 1);
+
 		ScraperSearchResult result;
 
-		// Extract game_title
-		size_t end = content.find(",", pos);
-		if(end != std::string::npos)
-		{
-			result.name = content.substr(pos + 14, end - pos - 15);
-			// Remove quotes
-			if(result.name.front() == '"') result.name = result.name.substr(1);
-			if(result.name.back() == '"') result.name.pop_back();
-		}
+		std::string title = jsonGetString(block, "game_title");
+		if(title.empty()) { pos = blockEnd + 1; continue; }
+		result.mdl.set("name", title);
 
-		// Extract overview/description
-		size_t descPos = content.find("\"overview\"", pos);
-		if(descPos != std::string::npos)
+		std::string overview = jsonGetString(block, "overview");
+		if(!overview.empty()) result.mdl.set("desc", overview);
+
+		std::string releaseDate = jsonGetString(block, "release_date");
+		if(!releaseDate.empty()) result.mdl.set("releasedate", releaseDate);
+
+		std::string rating = jsonGetString(block, "rating");
+		if(!rating.empty()) result.mdl.set("rating", rating);
+
+		size_t boxartPos = block.find("\"original\"");
+		if(boxartPos != std::string::npos)
 		{
-			size_t descEnd = content.find("\",", descPos);
-			if(descEnd != std::string::npos)
+			size_t urlStart = block.find("\"", boxartPos + 11);
+			if(urlStart != std::string::npos)
 			{
-				result.description = content.substr(descPos + 12, descEnd - descPos - 13);
-				if(result.description.front() == '"') result.description = result.description.substr(1);
+				size_t urlEnd = block.find("\"", urlStart + 1);
+				if(urlEnd != std::string::npos)
+					result.imageUrl = block.substr(urlStart + 1, urlEnd - urlStart - 1);
 			}
 		}
 
-		// Extract release date
-		size_t datePos = content.find("\"release_date\"", pos);
-		if(datePos != std::string::npos)
-		{
-			size_t dateEnd = content.find("\",", datePos);
-			if(dateEnd != std::string::npos)
-				result.releaseDate = content.substr(datePos + 15, dateEnd - datePos - 16);
-		}
-
-		// Extract developers
-		size_t devPos = content.find("\"developers\"", pos);
-		if(devPos != std::string::npos)
-		{
-			size_t devEnd = content.find("]", devPos);
-			if(devEnd != std::string::npos)
-				result.developer = content.substr(devPos + 13, devEnd - devPos - 14);
-		}
-
-		// Extract publishers
-		size_t pubPos = content.find("\"publishers\"", pos);
-		if(pubPos != std::string::npos)
-		{
-			size_t pubEnd = content.find("]", pubPos);
-			if(pubEnd != std::string::npos)
-				result.publisher = content.substr(pubPos + 14, pubEnd - pubPos - 15);
-		}
-
-		// Extract genres
-		size_t genrePos = content.find("\"genres\"", pos);
-		if(genrePos != std::string::npos)
-		{
-			size_t genreEnd = content.find("]", genrePos);
-			if(genreEnd != std::string::npos)
-				result.genre = content.substr(genrePos + 9, genreEnd - genrePos - 10);
-		}
-
-		// Extract rating
-		size_t ratingPos = content.find("\"rating\"", pos);
-		if(ratingPos != std::string::npos)
-		{
-			size_t ratingEnd = content.find(",", ratingPos);
-			if(ratingEnd != std::string::npos)
-				result.rating = content.substr(ratingPos + 9, ratingEnd - ratingPos - 10);
-		}
-
-		// Extract boxart URL
-		size_t boxartPos = content.find("\"original\"", pos);
-		if(boxartPos != std::string::npos)
-		{
-			size_t boxartEnd = content.find("\"", boxartPos + 12);
-			if(boxartEnd != std::string::npos)
-				result.imageUrl = content.substr(boxartPos + 12, boxartEnd - boxartPos - 12);
-		}
-
-		result.status = ScraperSearchResult::READY;
 		results.push_back(result);
-		
-		pos = (end != std::string::npos) ? end + 1 : content.size();
+		pos = blockEnd + 1;
 	}
 
 	LOG(LogInfo) << "TheGamesDB: found " << results.size() << " results";

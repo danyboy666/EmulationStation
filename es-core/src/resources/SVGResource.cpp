@@ -47,7 +47,7 @@ void SVGResource::initFromMemory(const char* file, size_t length)
 	if(mLastWidth && mLastHeight)
 		rasterizeAt(mLastWidth, mLastHeight);
 	else
-		rasterizeAt((size_t)round(mSVGImage->width), (size_t)round(mSVGImage->height));
+		rasterizeAt((size_t)std::round(mSVGImage->width), (size_t)std::round(mSVGImage->height));
 }
 
 void SVGResource::rasterizeAt(size_t width, size_t height)
@@ -58,14 +58,14 @@ void SVGResource::rasterizeAt(size_t width, size_t height)
 	if(width == 0)
 	{
 		// auto scale width to keep aspect
-		width = (size_t)round((height / mSVGImage->height) * mSVGImage->width);
+		width = (size_t)std::round((height / mSVGImage->height) * mSVGImage->width);
 	}else if(height == 0)
 	{
 		// auto scale height to keep aspect
-		height = (size_t)round((width / mSVGImage->width) * mSVGImage->height);
+		height = (size_t)std::round((width / mSVGImage->width) * mSVGImage->height);
 	}
 
-	if(width != (size_t)round(mSVGImage->width) && height != (size_t)round(mSVGImage->height))
+	if(width != (size_t)std::round(mSVGImage->width) && height != (size_t)std::round(mSVGImage->height))
 	{
 		mLastWidth = width;
 		mLastHeight = height;

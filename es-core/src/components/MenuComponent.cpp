@@ -128,6 +128,6 @@ std::shared_ptr<ImageComponent> makeArrow(Window* window)
 {
 	auto bracket = std::make_shared<ImageComponent>(window);
 	bracket->setImage(":/arrow.svg");
-	bracket->setResize(0, round(Font::get(FONT_SIZE_MEDIUM)->getLetterHeight()));
+	bracket->setResize(0, std::round(Font::get(FONT_SIZE_MEDIUM)->getLetterHeight()));
 	return bracket;
 }

@@ -75,7 +75,7 @@ GuiMenu::GuiMenu(Window* window) : GuiComponent(window), mMenu(window, "MAIN MEN
 			auto volume = std::make_shared<SliderComponent>(mWindow, 0.f, 100.f, 1.f, "%");
 			volume->setValue((float)VolumeControl::getInstance()->getVolume());
 			s->addWithLabel("SYSTEM VOLUME", volume);
-			s->addSaveFunc([volume] { VolumeControl::getInstance()->setVolume((int)round(volume->getValue())); });
+			s->addSaveFunc([volume] { VolumeControl::getInstance()->setVolume((int)std::round(volume->getValue())); });
 			
 			// disable sounds
 			auto sounds_enabled = std::make_shared<SwitchComponent>(mWindow);
@@ -94,7 +94,7 @@ GuiMenu::GuiMenu(Window* window) : GuiComponent(window), mMenu(window, "MAIN MEN
 			auto screensaver_time = std::make_shared<SliderComponent>(mWindow, 0.f, 30.f, 1.f, "m");
 			screensaver_time->setValue((float)(Settings::getInstance()->getInt("ScreenSaverTime") / (1000 * 60)));
 			s->addWithLabel("SCREENSAVER AFTER", screensaver_time);
-			s->addSaveFunc([screensaver_time] { Settings::getInstance()->setInt("ScreenSaverTime", (int)round(screensaver_time->getValue()) * (1000 * 60)); });
+			s->addSaveFunc([screensaver_time] { Settings::getInstance()->setInt("ScreenSaverTime", (int)std::round(screensaver_time->getValue()) * (1000 * 60)); });
 
 			// screensaver behavior
 			auto screensaver_behavior = std::make_shared< OptionListComponent<std::string> >(mWindow, "TRANSITION STYLE", false);
