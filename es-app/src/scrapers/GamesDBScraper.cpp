@@ -1,164 +1,170 @@
 #include "scrapers/GamesDBScraper.h"
 #include "Log.h"
-#include "pugixml/pugixml.hpp"
-#include "MetaData.h"
 #include "Settings.h"
 #include "Util.h"
 #include <boost/assign.hpp>
 
 using namespace PlatformIds;
-const std::map<PlatformId, const char*> gamesdb_platformid_map = boost::assign::map_list_of
-	(THREEDO, "3DO")
-	(AMIGA, "Amiga")
-	(AMSTRAD_CPC, "Amstrad CPC")
-	// missing apple2
-	(ARCADE, "Arcade")
-	// missing atari 800
-	(ATARI_2600, "Atari 2600")
-	(ATARI_5200, "Atari 5200")
-	(ATARI_7800, "Atari 7800")
-	(ATARI_JAGUAR, "Atari Jaguar")
-	(ATARI_JAGUAR_CD, "Atari Jaguar CD")
-	(ATARI_LYNX, "Atari Lynx")
-	// missing atari ST/STE/Falcon
-	(ATARI_XE, "Atari XE")
-	(COLECOVISION, "Colecovision")
-	(COMMODORE_64, "Commodore 64")
-	(INTELLIVISION, "Intellivision")
-	(MAC_OS, "Mac OS")
-	(XBOX, "Microsoft Xbox")
-	(XBOX_360, "Microsoft Xbox 360")
-	// missing MSX
-	(NEOGEO, "NeoGeo")
-	(NEOGEO_POCKET, "Neo Geo Pocket")
-	(NEOGEO_POCKET_COLOR, "Neo Geo Pocket Color")
-	(NINTENDO_3DS, "Nintendo 3DS")
-	(NINTENDO_64, "Nintendo 64")
-	(NINTENDO_DS, "Nintendo DS")
-	(NINTENDO_ENTERTAINMENT_SYSTEM, "Nintendo Entertainment System (NES)")
-	(GAME_BOY, "Nintendo Game Boy")
-	(GAME_BOY_ADVANCE, "Nintendo Game Boy Advance")
-	(GAME_BOY_COLOR, "Nintendo Game Boy Color")
-	(NINTENDO_GAMECUBE, "Nintendo GameCube")
-	(NINTENDO_WII, "Nintendo Wii")
-	(NINTENDO_WII_U, "Nintendo Wii U")
-	(PC, "PC")
-	(SEGA_32X, "Sega 32X")
-	(SEGA_CD, "Sega CD")
-	(SEGA_DREAMCAST, "Sega Dreamcast")
-	(SEGA_GAME_GEAR, "Sega Game Gear")
-	(SEGA_GENESIS, "Sega Genesis")
-	(SEGA_MASTER_SYSTEM, "Sega Master System")
-	(SEGA_MEGA_DRIVE, "Sega Mega Drive")
-	(SEGA_SATURN, "Sega Saturn")
-	(PLAYSTATION, "Sony Playstation")
-	(PLAYSTATION_2, "Sony Playstation 2")
-	(PLAYSTATION_3, "Sony Playstation 3")
-	(PLAYSTATION_4, "Sony Playstation 4")
-	(PLAYSTATION_VITA, "Sony Playstation Vita")
-	(PLAYSTATION_PORTABLE, "Sony PSP")
-	(SUPER_NINTENDO, "Super Nintendo (SNES)")
-	(TURBOGRAFX_16, "TurboGrafx 16")
-	(WONDERSWAN, "WonderSwan")
-	(WONDERSWAN_COLOR, "WonderSwan Color")
-	(ZX_SPECTRUM, "Sinclair ZX Spectrum");
-
+const std::map<PlatformId, int> gamesdb_platformid_map = boost::assign::map_list_of
+	(ARCADE, 1)
+	(ATARI_2600, 26)
+	(ATARI_5200, 40)
+	(ATARI_7800, 41)
+	(ATARI_JAGUAR, 27)
+	(ATARI_LYNX, 28)
+	(COLECOVISION, 48)
+	(GAME_BOY, 9)
+	(GAME_BOY_ADVANCE, 12)
+	(GAME_BOY_COLOR, 10)
+	(NEOGEO, 142)
+	(NEOGEO_POCKET, 25)
+	(NEOGEO_POCKET_COLOR, 82)
+	(NINTENDO_64, 14)
+	(NINTENDO_ENTERTAINMENT_SYSTEM, 3)
+	(SEGA_32X, 19)
+	(SEGA_CD, 20)
+	(SEGA_GAME_GEAR, 21)
+	(SEGA_GENESIS, 1)
+	(SEGA_MASTER_SYSTEM, 2)
+	(SEGA_MEGA_DRIVE, 1)
+	(PLAYSTATION, 57)
+	(PLAYSTATION_PORTABLE, 61)
+	(SUPER_NINTENDO, 4)
+	(TURBOGRAFX_16, 31)
+	(WONDERSWAN, 45)
+	(WONDERSWAN_COLOR, 46);
 
 void thegamesdb_generate_scraper_requests(const ScraperSearchParams& params, std::queue< std::unique_ptr<ScraperRequest> >& requests, 
 	std::vector<ScraperSearchResult>& results)
 {
-	std::string path = "legacy.thegamesdb.net/api/GetGame.php?";
-
-	std::string cleanName = params.nameOverride;
-	if(cleanName.empty())
-		cleanName = params.game->getCleanName();
-
-	path += "name=" + HttpReq::urlEncode(cleanName);
-
-	if(params.system->getPlatformIds().empty())
+	std::string apiKey = Settings::getInstance()->getString("TheGamesDBApiKey");
+	if(apiKey.empty())
 	{
-		// no platform specified, we're done
-		requests.push(std::unique_ptr<ScraperRequest>(new TheGamesDBRequest(results, path)));
-	}else{
-		// go through the list, we need to split this into multiple requests 
-		// because TheGamesDB API either sucks or I don't know how to use it properly...
-		std::string urlBase = path;
-		auto& platforms = params.system->getPlatformIds();
-		for(auto platformIt = platforms.begin(); platformIt != platforms.end(); platformIt++)
-		{
-			path = urlBase;
-			auto mapIt = gamesdb_platformid_map.find(*platformIt);
-			if(mapIt != gamesdb_platformid_map.end())
-			{
-				path += "&platform=";
-				path += HttpReq::urlEncode(mapIt->second);
-			}else{
-				LOG(LogWarning) << "TheGamesDB scraper warning - no support for platform " << getPlatformName(*platformIt);
-			}
+		LOG(LogWarning) << "TheGamesDB: No API key configured. Set TheGamesDBApiKey in settings.";
+		return;
+	}
 
-			requests.push(std::unique_ptr<ScraperRequest>(new TheGamesDBRequest(results, path)));
+	std::string name = params.nameOverride;
+	if(name.empty())
+		name = params.game->getCleanName();
+
+	std::string url = "https://api.thegamesdb.net/v1/Games/ByGameName?";
+	url += "name=" + HttpReq::urlEncode(name);
+	url += "&apikey=" + HttpReq::urlEncode(apiKey);
+	url += "&include=boxart";
+
+	if(!params.system->getPlatformIds().empty())
+	{
+		PlatformId id = params.system->getPlatformIds()[0];
+		auto it = gamesdb_platformid_map.find(id);
+		if(it != gamesdb_platformid_map.end())
+		{
+			url += "&filter[platform_id]=" + std::to_string(it->second);
 		}
 	}
+
+	LOG(LogInfo) << "TheGamesDB: " << url;
+	requests.push_back(std::unique_ptr<ScraperRequest>(new TheGamesDBRequest(results, url)));
 }
 
 void TheGamesDBRequest::process(const std::unique_ptr<HttpReq>& req, std::vector<ScraperSearchResult>& results)
 {
-	assert(req->status() == HttpReq::REQ_SUCCESS);
-
-	pugi::xml_document doc;
-	pugi::xml_parse_result parseResult = doc.load(req->getContent().c_str());
-	if(!parseResult)
+	if(req->status() != 200)
 	{
-		std::stringstream ss;
-		ss << "GamesDBRequest - Error parsing XML. \n\t" << parseResult.description() << "";
-		std::string err = ss.str();
-		setError(err);
-		LOG(LogError) << err;
+		LOG(LogError) << "TheGamesDB: HTTP error " << req->status();
 		return;
 	}
 
-	pugi::xml_node data = doc.child("Data");
+	const std::string& content = req->content();
 
-	std::string baseImageUrl = data.child("baseImgUrl").text().get();
-
-	pugi::xml_node game = data.child("Game");
-	while(game && results.size() < MAX_SCRAPER_RESULTS)
+	// Parse JSON response
+	// TheGamesDB v1 returns JSON with game data
+	size_t pos = 0;
+	while((pos = content.find("\"game_title\"", pos)) != std::string::npos)
 	{
 		ScraperSearchResult result;
 
-		result.mdl.set("name", game.child("GameTitle").text().get());
-		result.mdl.set("desc", game.child("Overview").text().get());
-
-		boost::posix_time::ptime rd = string_to_ptime(game.child("ReleaseDate").text().get(), "%m/%d/%Y");
-		result.mdl.setTime("releasedate", rd);
-
-		result.mdl.set("developer", game.child("Developer").text().get());
-		result.mdl.set("publisher", game.child("Publisher").text().get());
-		result.mdl.set("genre", game.child("Genres").first_child().text().get());
-		result.mdl.set("players", game.child("Players").text().get());
-
-		if(Settings::getInstance()->getBool("ScrapeRatings") && game.child("Rating"))
+		// Extract game_title
+		size_t end = content.find(",", pos);
+		if(end != std::string::npos)
 		{
-			float ratingVal = (game.child("Rating").text().as_int() / 10.0f);
-			std::stringstream ss;
-			ss << ratingVal;
-			result.mdl.set("rating", ss.str());
+			result.name = content.substr(pos + 14, end - pos - 15);
+			// Remove quotes
+			if(result.name.front() == '"') result.name = result.name.substr(1);
+			if(result.name.back() == '"') result.name.pop_back();
 		}
 
-		pugi::xml_node images = game.child("Images");
-
-		if(images)
+		// Extract overview/description
+		size_t descPos = content.find("\"overview\"", pos);
+		if(descPos != std::string::npos)
 		{
-			pugi::xml_node art = images.find_child_by_attribute("boxart", "side", "front");
-
-			if(art)
+			size_t descEnd = content.find("\",", descPos);
+			if(descEnd != std::string::npos)
 			{
-				result.thumbnailUrl = baseImageUrl + art.attribute("thumb").as_string();
-				result.imageUrl = baseImageUrl + art.text().get();
+				result.description = content.substr(descPos + 12, descEnd - descPos - 13);
+				if(result.description.front() == '"') result.description = result.description.substr(1);
 			}
 		}
 
+		// Extract release date
+		size_t datePos = content.find("\"release_date\"", pos);
+		if(datePos != std::string::npos)
+		{
+			size_t dateEnd = content.find("\",", datePos);
+			if(dateEnd != std::string::npos)
+				result.releaseDate = content.substr(datePos + 15, dateEnd - datePos - 16);
+		}
+
+		// Extract developers
+		size_t devPos = content.find("\"developers\"", pos);
+		if(devPos != std::string::npos)
+		{
+			size_t devEnd = content.find("]", devPos);
+			if(devEnd != std::string::npos)
+				result.developer = content.substr(devPos + 13, devEnd - devPos - 14);
+		}
+
+		// Extract publishers
+		size_t pubPos = content.find("\"publishers\"", pos);
+		if(pubPos != std::string::npos)
+		{
+			size_t pubEnd = content.find("]", pubPos);
+			if(pubEnd != std::string::npos)
+				result.publisher = content.substr(pubPos + 14, pubEnd - pubPos - 15);
+		}
+
+		// Extract genres
+		size_t genrePos = content.find("\"genres\"", pos);
+		if(genrePos != std::string::npos)
+		{
+			size_t genreEnd = content.find("]", genrePos);
+			if(genreEnd != std::string::npos)
+				result.genre = content.substr(genrePos + 9, genreEnd - genrePos - 10);
+		}
+
+		// Extract rating
+		size_t ratingPos = content.find("\"rating\"", pos);
+		if(ratingPos != std::string::npos)
+		{
+			size_t ratingEnd = content.find(",", ratingPos);
+			if(ratingEnd != std::string::npos)
+				result.rating = content.substr(ratingPos + 9, ratingEnd - ratingPos - 10);
+		}
+
+		// Extract boxart URL
+		size_t boxartPos = content.find("\"original\"", pos);
+		if(boxartPos != std::string::npos)
+		{
+			size_t boxartEnd = content.find("\"", boxartPos + 12);
+			if(boxartEnd != std::string::npos)
+				result.imageUrl = content.substr(boxartPos + 12, boxartEnd - boxartPos - 12);
+		}
+
+		result.status = ScraperSearchResult::READY;
 		results.push_back(result);
-		game = game.next_sibling("Game");
+		
+		pos = (end != std::string::npos) ? end + 1 : content.size();
 	}
+
+	LOG(LogInfo) << "TheGamesDB: found " << results.size() << " results";
 }
