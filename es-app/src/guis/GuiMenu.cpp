@@ -18,7 +18,9 @@
 #include "components/MenuComponent.h"
 #include "VolumeControl.h"
 #include "scrapers/GamesDBScraper.h"
+#include "scrapers/ScreenScraperScraper.h"
 #include "scrapers/TheArchiveScraper.h"
+#include "guis/GuiTextEditPopup.h"
 
 GuiMenu::GuiMenu(Window* window) : GuiComponent(window), mMenu(window, "MAIN MENU"), mVersion(window)
 {
@@ -51,6 +53,60 @@ GuiMenu::GuiMenu(Window* window) : GuiComponent(window), mMenu(window, "MAIN MEN
 			scrape_ratings->setState(Settings::getInstance()->getBool("ScrapeRatings"));
 			s->addWithLabel("SCRAPE RATINGS", scrape_ratings);
 			s->addSaveFunc([scrape_ratings] { Settings::getInstance()->setBool("ScrapeRatings", scrape_ratings->getState()); });
+
+			// TheGamesDB API key
+			{
+				ComponentListRow row;
+				row.makeAcceptInputHandler([this, s] {
+					std::string currentKey = Settings::getInstance()->getString("TheGamesDBApiKey");
+					mWindow->pushGui(new GuiTextEditPopup(mWindow, "THEGAMESDB API KEY", currentKey,
+						[](const std::string& val) {
+							Settings::getInstance()->setString("TheGamesDBApiKey", val);
+							Settings::getInstance()->saveFile();
+						}, false));
+				});
+				auto label = std::make_shared<TextComponent>(mWindow, "THEGAMESDB API KEY", Font::get(FONT_SIZE_MEDIUM), 0x777777FF);
+				auto arrow = makeArrow(mWindow);
+				row.addElement(label, true);
+				row.addElement(arrow, false);
+				s->addRow(row);
+			}
+
+			// ScreenScraper username
+			{
+				ComponentListRow row;
+				row.makeAcceptInputHandler([this, s] {
+					std::string current = Settings::getInstance()->getString("ScreenScraperUser");
+					mWindow->pushGui(new GuiTextEditPopup(mWindow, "SCREENSCRAPER USERNAME", current,
+						[](const std::string& val) {
+							Settings::getInstance()->setString("ScreenScraperUser", val);
+							Settings::getInstance()->saveFile();
+						}, false));
+				});
+				auto label = std::make_shared<TextComponent>(mWindow, "SCREENSCRAPER USER", Font::get(FONT_SIZE_MEDIUM), 0x777777FF);
+				auto arrow = makeArrow(mWindow);
+				row.addElement(label, true);
+				row.addElement(arrow, false);
+				s->addRow(row);
+			}
+
+			// ScreenScraper password
+			{
+				ComponentListRow row;
+				row.makeAcceptInputHandler([this, s] {
+					std::string current = Settings::getInstance()->getString("ScreenScraperPass");
+					mWindow->pushGui(new GuiTextEditPopup(mWindow, "SCREENSCRAPER PASSWORD", current,
+						[](const std::string& val) {
+							Settings::getInstance()->setString("ScreenScraperPass", val);
+							Settings::getInstance()->saveFile();
+						}, false));
+				});
+				auto label = std::make_shared<TextComponent>(mWindow, "SCREENSCRAPER PASS", Font::get(FONT_SIZE_MEDIUM), 0x777777FF);
+				auto arrow = makeArrow(mWindow);
+				row.addElement(label, true);
+				row.addElement(arrow, false);
+				s->addRow(row);
+			}
 
 			// scrape now
 			ComponentListRow row;

@@ -60,11 +60,25 @@ void screenscraper_generate_scraper_requests(const ScraperSearchParams& params, 
 
 	std::string url = "https://api.screenscraper.fr/api2/jeuRecherche.php?";
 	url += "softname=PS4RetroBox";
-	url += "&rechte=0";
 	url += "&output=XML";
 	url += "&romnom=" + HttpReq::urlEncode(name);
 	if(!system.empty())
 		url += "&systemeid=" + system;
+
+	std::string ssUser = Settings::getInstance()->getString("ScreenScraperUser");
+	std::string ssPass = Settings::getInstance()->getString("ScreenScraperPass");
+	if(!ssUser.empty() && !ssPass.empty())
+	{
+		url += "&devid=PS4RetroBox";
+		url += "&user=" + HttpReq::urlEncode(ssUser);
+		url += "&password=" + HttpReq::urlEncode(ssPass);
+		LOG(LogInfo) << "ScreenScraper: using registered user " << ssUser;
+	}
+	else
+	{
+		url += "&rechte=0";
+		LOG(LogInfo) << "ScreenScraper: using anonymous access (limited)";
+	}
 
 	LOG(LogInfo) << "ScreenScraper: " << url;
 	requests.push(std::unique_ptr<ScraperRequest>(new ScreenScraperRequest(results, url)));
