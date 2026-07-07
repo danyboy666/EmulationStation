@@ -1,5 +1,10 @@
 #include "SystemData.h"
 #include "Gamelist.h"
+#include "CollectionSystemManager.h"
+#include "FileFilterIndex.h"
+#include "FileSorts.h"
+#include "Log.h"
+#include "Settings.h"
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <stdlib.h>
@@ -7,11 +12,8 @@
 #include "Renderer.h"
 #include "AudioManager.h"
 #include "VolumeControl.h"
-#include "Log.h"
 #include "InputManager.h"
 #include <iostream>
-#include "Settings.h"
-#include "FileSorts.h"
 
 std::vector<SystemData*> SystemData::sSystemVector;
 
@@ -23,6 +25,9 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, con
 	mName = name;
 	mFullName = fullName;
 	mStartPath = startPath;
+	mIsCollectionSystem = false;
+	mIsGameSystem = true;
+	mFilterIndex = NULL;
 
 	//expand home symbol if the startpath contains ~
 	if(mStartPath[0] == '~')
@@ -50,15 +55,33 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, con
 	loadTheme();
 }
 
+SystemData::SystemData(const std::string& name, const std::string& fullName, const std::string& themeFolder, bool CollectionSystem)
+{
+	mName = name;
+	mFullName = fullName;
+	mStartPath = "";
+	mIsCollectionSystem = CollectionSystem;
+	mIsGameSystem = false;
+	mFilterIndex = NULL;
+	mThemeFolder = themeFolder;
+	mRootFolder = new FileData(FOLDER, "", this);
+	mRootFolder->metadata.set("name", mFullName);
+}
+
 SystemData::~SystemData()
 {
-	//save changed game data back to xml
-	if(!Settings::getInstance()->getBool("IgnoreGamelist"))
+	if(!mIsCollectionSystem)
 	{
-		updateGamelist(this);
+		//save changed game data back to xml
+		if(!Settings::getInstance()->getBool("IgnoreGamelist"))
+		{
+			updateGamelist(this);
+		}
 	}
 
 	delete mRootFolder;
+	if(mFilterIndex != NULL)
+		delete mFilterIndex;
 }
 
 
@@ -226,7 +249,7 @@ std::vector<std::string> readList(const std::string& str, const char* delims = "
 }
 
 //creates systems from information located in a config file
-bool SystemData::loadConfig()
+bool SystemData::loadConfig(Window* window)
 {
 	deleteSystems();
 
@@ -447,5 +470,38 @@ void SystemData::loadTheme()
 	{
 		LOG(LogError) << e.what();
 		mTheme = std::make_shared<ThemeData>(); // reset to empty
+	}
+}
+
+void SystemData::setIsGameSystemStatus()
+{
+	// if this is a collection, it's not a game system
+	if(mIsCollectionSystem)
+	{
+		mIsGameSystem = false;
+		return;
+	}
+
+	// if the start path is empty, it's not a game system
+	if(mStartPath.empty())
+	{
+		mIsGameSystem = false;
+		return;
+	}
+
+	mIsGameSystem = true;
+}
+
+void SystemData::indexAllGameFilters(const FileData* folder)
+{
+	for(auto it = folder->getChildren().cbegin(); it != folder->getChildren().cend(); it++)
+	{
+		if((*it)->getType() == FOLDER)
+		{
+			indexAllGameFilters(*it);
+		}else{
+			if(mFilterIndex != NULL)
+				mFilterIndex->includeFile(*it);
+		}
 	}
 }

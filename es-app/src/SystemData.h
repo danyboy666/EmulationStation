@@ -2,17 +2,21 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include "FileData.h"
 #include "Window.h"
 #include "MetaData.h"
 #include "PlatformId.h"
 #include "ThemeData.h"
 
+class FileFilterIndex;
+
 class SystemData
 {
 public:
-	SystemData(const std::string& name, const std::string& fullName, const std::string& startPath, const std::vector<std::string>& extensions, 
+	SystemData(const std::string& name, const std::string& fullName, const std::string& startPath, const std::vector<std::string>& extensions,
 		const std::string& command, const std::vector<PlatformIds::PlatformId>& platformIds, const std::string& themeFolder);
+	SystemData(const std::string& name, const std::string& fullName, const std::string& themeFolder, bool CollectionSystem);
 	~SystemData();
 
 	inline FileData* getRootFolder() const { return mRootFolder; };
@@ -30,21 +34,25 @@ public:
 	std::string getGamelistPath(bool forWrite) const;
 	bool hasGamelist() const;
 	std::string getThemePath() const;
-	
+
 	unsigned int getGameCount() const;
 
 	void launchGame(Window* window, FileData* game);
 
 	static void deleteSystems();
-	static bool loadConfig(); //Load the system config file at getConfigPath(). Returns true if no errors were encountered. An example will be written if the file doesn't exist.
+	static bool loadConfig(Window* window);
 	static void writeExampleConfig(const std::string& path);
-	static std::string getConfigPath(bool forWrite); // if forWrite, will only return ~/.emulationstation/es_systems.cfg, never /etc/emulationstation/es_systems.cfg
+	static std::string getConfigPath(bool forWrite);
 
 	static std::vector<SystemData*> sSystemVector;
 
 	inline std::vector<SystemData*>::const_iterator getIterator() const { return std::find(sSystemVector.begin(), sSystemVector.end(), this); };
 	inline std::vector<SystemData*>::const_reverse_iterator getRevIterator() const { return std::find(sSystemVector.rbegin(), sSystemVector.rend(), this); };
-	
+
+	inline bool isCollection() { return mIsCollectionSystem; }
+	inline bool isGameSystem() { return mIsGameSystem; }
+	inline FileFilterIndex* getIndex() { return mFilterIndex; }
+
 	inline SystemData* getNext() const
 	{
 		auto it = getIterator();
@@ -61,8 +69,9 @@ public:
 		return *it;
 	}
 
-	// Load or re-load theme.
 	void loadTheme();
+
+	FileFilterIndex* mFilterIndex;
 
 private:
 	std::string mName;
@@ -74,7 +83,12 @@ private:
 	std::string mThemeFolder;
 	std::shared_ptr<ThemeData> mTheme;
 
+	bool mIsCollectionSystem;
+	bool mIsGameSystem;
+
 	void populateFolder(FileData* folder);
+	void setIsGameSystemStatus();
+	void indexAllGameFilters(const FileData* folder);
 
 	FileData* mRootFolder;
 };

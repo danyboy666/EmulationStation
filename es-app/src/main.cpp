@@ -7,6 +7,7 @@
 #include "Renderer.h"
 #include "views/ViewController.h"
 #include "SystemData.h"
+#include "CollectionSystemManager.h"
 #include <boost/filesystem.hpp>
 #include "guis/GuiDetectDevice.h"
 #include "guis/GuiMsgBox.h"
@@ -124,11 +125,11 @@ bool verifyHomeFolderExists()
 }
 
 // Returns true if everything is OK, 
-bool loadSystemConfigFile(const char** errorString)
+bool loadSystemConfigFile(Window* window, const char** errorString)
 {
 	*errorString = NULL;
 
-	if(!SystemData::loadConfig())
+	if(!SystemData::loadConfig(window))
 	{
 		LOG(LogError) << "Error while parsing systems configuration file!";
 		*errorString = "IT LOOKS LIKE YOUR SYSTEMS CONFIGURATION FILE HAS NOT BEEN SET UP OR IS INVALID. YOU'LL NEED TO DO THIS BY HAND, UNFORTUNATELY.\n\n"
@@ -214,6 +215,8 @@ int main(int argc, char* argv[])
 	ViewController::init(&window);
 	window.pushGui(ViewController::get());
 
+	CollectionSystemManager::init(&window);
+
 	if(!scrape_cmdline)
 	{
 		if(!window.init(width, height))
@@ -230,7 +233,7 @@ int main(int argc, char* argv[])
 	}
 
 	const char* errorMsg = NULL;
-	if(!loadSystemConfigFile(&errorMsg))
+	if(!loadSystemConfigFile(&window, &errorMsg))
 	{
 		// something went terribly wrong
 		if(errorMsg == NULL)
@@ -332,6 +335,7 @@ int main(int argc, char* argv[])
 		delete window.peekGui();
 	window.deinit();
 
+	CollectionSystemManager::deinit();
 	SystemData::deleteSystems();
 
 	LOG(LogInfo) << "EmulationStation cleanly shutting down.";
