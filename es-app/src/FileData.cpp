@@ -104,6 +104,7 @@ void FileData::addChild(FileData* file)
 
 	mChildren.push_back(file);
 	mChildrenByFilename[file->getPath().filename().string()] = file;
+	mChildrenByFilename[file->getPath().filename().string()] = file;
 	file->mParent = this;
 }
 
@@ -201,6 +202,9 @@ FileData::SortType getSortTypeFromString(std::string desc) {
 	}
 	return FileSorts::SortTypes.at(0);
 }
+
+#include "SystemData.h"
+#include "FileSorts.h"
 
 #include "SystemData.h"
 #include "FileSorts.h"

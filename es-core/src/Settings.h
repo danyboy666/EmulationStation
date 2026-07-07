@@ -13,10 +13,10 @@ public:
 
 	//You will get a warning if you try a get on a key that is not already present.
 	bool getBool(const std::string& name);
-	int getInt(const std::string& name);
 	float getFloat(const std::string& name);
-	const std::string& getString(const std::string& name);
+	int getInt(const std::string& name);
 	std::map<std::string, int> getMap(const std::string& name);
+	const std::string& getString(const std::string& name);
 
 	void setBool(const std::string& name, bool value);
 	void setInt(const std::string& name, int value);

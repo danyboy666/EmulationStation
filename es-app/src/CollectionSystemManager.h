@@ -2,35 +2,21 @@
 #include <string>
 #include <vector>
 #include <map>
-
 class Window;
 class SystemData;
-
-struct CollectionSystemDecl {
-	std::string name;
-	std::string longName;
-	std::string themeFolder;
-};
-
-struct CollectionSystemData {
-	SystemData* system;
-	CollectionSystemDecl decl;
-	bool isEnabled;
-};
-
+struct CollectionSystemDecl { std::string name; std::string longName; std::string themeFolder; };
+struct CollectionSystemData { SystemData* system; CollectionSystemDecl decl; bool isEnabled; };
 class CollectionSystemManager
 {
 public:
 	static CollectionSystemManager* get();
 	static void init(Window* window);
 	static void deinit();
-
 	void loadCollectionSystems();
 	void loadEnabledListFromSettings();
 	void updateSystemsList();
-
 	inline std::map<std::string, CollectionSystemData>& getAutoCollectionSystems() { return mAutoCollectionSystemsData; }
-
+	inline std::map<std::string, CollectionSystemData> getCustomCollectionSystems() { return mCustomCollectionSystemsData; }
 	bool isEditing() { return false; }
 	std::string getEditingCollection() { return ""; }
 	void exitEditMode() {}
@@ -40,8 +26,6 @@ public:
 	bool saveCustomCollection(SystemData* sys) { return false; }
 	std::string getValidNewCollectionName(const std::string& name, int index = 0) { return name; }
 	bool toggleGameInCollection(SystemData* file, const std::string& collectionName = "favorites");
-	inline std::map<std::string, CollectionSystemData> getCustomCollectionSystems() { return mCustomCollectionSystemsData; }
-
 private:
 	CollectionSystemManager(Window* window);
 	~CollectionSystemManager();

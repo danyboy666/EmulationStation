@@ -1,11 +1,11 @@
-#include "Settings.h"\n#include <fstream>
+#include <fstream>
+#include "Settings.h"
 
 #include "guis/GuiCollectionSystemsOptions.h"
 
 #include "components/OptionListComponent.h"
 #include "components/SwitchComponent.h"
 #include "guis/GuiInfoPopup.h"
-
 #include "guis/GuiSettings.h"
 #include "guis/GuiTextEditPopup.h"
 #include "utils/StringUtil.h"
@@ -32,7 +32,7 @@ void GuiCollectionSystemsOptions::initializeMenu()
 	ComponentListRow row;
 	if(CollectionSystemManager::get()->isEditing())
 	{
-		row.addElement(std::make_shared<TextComponent>(mWindow, "FINISH EDITING '" + Utils::String::toUpper(CollectionSystemManager::get()->getEditingCollection()) + "' COLLECTION", Font::get(FONT_SIZE_MEDIUM), 0x777777FF), true);
+		row.addElement(std::make_shared<TextComponent>(mWindow, "FINISH EDITING '" + strToUpper(CollectionSystemManager::get()->getEditingCollection()) + "' COLLECTION", Font::get(FONT_SIZE_MEDIUM), 0x777777FF), true);
 		row.makeAcceptInputHandler(std::bind(&GuiCollectionSystemsOptions::exitEditMode, this));
 		mMenu.addRow(row);
 	}
@@ -58,7 +58,7 @@ void GuiCollectionSystemsOptions::initializeMenu()
 					};
 					row.makeAcceptInputHandler(createCollectionCall);
 
-					auto themeFolder = std::make_shared<TextComponent>(mWindow, Utils::String::toUpper(name), Font::get(FONT_SIZE_SMALL), 0x777777FF);
+					auto themeFolder = std::make_shared<TextComponent>(mWindow, strToUpper(name), Font::get(FONT_SIZE_SMALL), 0x777777FF);
 					row.addElement(themeFolder, true);
 					s->addRow(row);
 				}
@@ -146,13 +146,13 @@ void GuiCollectionSystemsOptions::createCollection(std::string inName)
 
 	SystemData* newSys = collSysMgr->addNewCustomCollection(name, true);
 	if (!collSysMgr->saveCustomCollection(newSys)) {
-		GuiInfoPopup* s = new GuiInfoPopup(mWindow, "Failed creating '" + Utils::String::toUpper(name) + "' Collection. See log for details.", 8000);
-		/* setInfoPopup removed */
+		GuiInfoPopup* s = new GuiInfoPopup(mWindow, "Failed creating '" + strToUpper(name) + "' Collection. See log for details.", 8000);
+		/*mWindow->setInfoPopup(s);*/
 		return;
 	}
 	customOptionList->add(name, name, true);
-	std::string outAuto = Utils::String::vectorToDelimitedString(autoOptionList->getSelectedObjects(), ",");
-	std::string outCustom = Utils::String::vectorToDelimitedString(customOptionList->getSelectedObjects(), ",");
+	std::string outAuto = /* removed */(autoOptionList->getSelectedObjects(), ",");
+	std::string outCustom = /* removed */(customOptionList->getSelectedObjects(), ",");
 	updateSettings(outAuto, outCustom);
 	ViewController::get()->goToSystemView(newSys);
 
@@ -164,7 +164,6 @@ void GuiCollectionSystemsOptions::createCollection(std::string inName)
 
 void GuiCollectionSystemsOptions::openRandomCollectionSettings()
 {
-	// Random collection settings not available
 }
 
 void GuiCollectionSystemsOptions::exitEditMode()
@@ -206,9 +205,9 @@ void GuiCollectionSystemsOptions::addSystemsToMenu()
 
 void GuiCollectionSystemsOptions::applySettings()
 {
-	std::string outAuto = Utils::String::vectorToDelimitedString(autoOptionList->getSelectedObjects(), ",");
+	std::string outAuto = /* removed */(autoOptionList->getSelectedObjects(), ",");
 	std::string prevAuto = Settings::getInstance()->getString("CollectionSystemsAuto");
-	std::string outCustom = Utils::String::vectorToDelimitedString(customOptionList->getSelectedObjects(), ",");
+	std::string outCustom = /* removed */(customOptionList->getSelectedObjects(), ",");
 	std::string prevCustom = Settings::getInstance()->getString("CollectionSystemsCustom");
 	bool outSort = sortAllSystemsSwitch->getState();
 	bool prevSort = Settings::getInstance()->getBool("SortAllSystems");
