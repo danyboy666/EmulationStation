@@ -8,6 +8,7 @@
 #include "views/ViewController.h"
 #include "SystemData.h"
 #include "CollectionSystemManager.h"
+#include "CollectionSystemManager.h"
 #include <boost/filesystem.hpp>
 #include "guis/GuiDetectDevice.h"
 #include "guis/GuiMsgBox.h"
@@ -213,6 +214,7 @@ int main(int argc, char* argv[])
 
 	Window window;
 	ViewController::init(&window);
+	CollectionSystemManager::init(&window);
 	window.pushGui(ViewController::get());
 
 	CollectionSystemManager::init(&window);
@@ -335,6 +337,7 @@ int main(int argc, char* argv[])
 		delete window.peekGui();
 	window.deinit();
 
+	CollectionSystemManager::deinit();
 	CollectionSystemManager::deinit();
 	SystemData::deleteSystems();
 

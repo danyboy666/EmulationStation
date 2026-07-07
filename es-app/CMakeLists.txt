@@ -8,6 +8,7 @@ set(ES_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PlatformId.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ScraperCmdLine.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemData.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/VolumeControl.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Gamelist.h
 
@@ -23,7 +24,9 @@ set(ES_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiGameScraper.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiGamelistOptions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiMenu.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiInfoPopup.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiSettings.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiCollectionSystemsOptions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiScraperMulti.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiScraperStart.h
 
@@ -41,6 +44,7 @@ set(ES_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/gamelist/GridGameListView.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/SystemView.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/ViewController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views/UIModeController.h
 
     # Animations
     ${CMAKE_CURRENT_SOURCE_DIR}/src/animations/LaunchAnimation.h
@@ -56,6 +60,7 @@ set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PlatformId.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ScraperCmdLine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/VolumeControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Gamelist.cpp
 
@@ -70,7 +75,9 @@ set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiGameScraper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiGamelistOptions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiMenu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiInfoPopup.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiSettings.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiCollectionSystemsOptions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiScraperMulti.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiScraperStart.cpp
 
@@ -88,6 +95,7 @@ set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/gamelist/GridGameListView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/SystemView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/ViewController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views/UIModeController.cpp
 )
 
 #-------------------------------------------------------------------------------
@@ -100,7 +108,7 @@ endif()
 
 #-------------------------------------------------------------------------------
 # define target
-include_directories(${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+include_directories(${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/../es-core/src/third-party/pugixml)
 add_executable(emulationstation ${ES_SOURCES} ${ES_HEADERS})
 target_link_libraries(emulationstation ${COMMON_LIBRARIES} es-core)
 

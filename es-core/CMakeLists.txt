@@ -54,6 +54,9 @@ set(CORE_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/ResourceManager.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/SVGResource.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/TextureResource.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/utils/FileSystemUtil.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/utils/StringUtil.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/pugixml/pugixml.hpp
 
 	# Embedded assets (needed by ResourceManager)
 	${emulationstation-all_SOURCE_DIR}/data/Resources.h
@@ -108,6 +111,9 @@ set(CORE_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/ResourceManager.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/SVGResource.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/resources/TextureResource.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/utils/FileSystemUtil.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/utils/StringUtil.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/third-party/pugixml/pugixml.cpp
 )
 
 set(EMBEDDED_ASSET_SOURCES
@@ -159,6 +165,6 @@ set(EMBEDDED_ASSET_SOURCES
 
 list(APPEND CORE_SOURCES ${EMBEDDED_ASSET_SOURCES})
 
-include_directories(${COMMON_INCLUDE_DIRS})
+include_directories(${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/third-party/pugixml)
 add_library(es-core STATIC ${CORE_SOURCES} ${CORE_HEADERS})
 target_link_libraries(es-core ${COMMON_LIBRARIES})

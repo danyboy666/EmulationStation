@@ -1,7 +1,7 @@
 #include "SystemData.h"
+#include "CollectionSystemManager.h"
 #include "Gamelist.h"
 #include "CollectionSystemManager.h"
-#include "FileFilterIndex.h"
 #include "FileSorts.h"
 #include "Log.h"
 #include "Settings.h"
@@ -27,7 +27,6 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, con
 	mStartPath = startPath;
 	mIsCollectionSystem = false;
 	mIsGameSystem = true;
-	mFilterIndex = NULL;
 
 	//expand home symbol if the startpath contains ~
 	if(mStartPath[0] == '~')
@@ -41,6 +40,8 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, con
 	mPlatformIds = platformIds;
 	mThemeFolder = themeFolder;
 
+	mIsCollectionSystem = false;
+	mIsGameSystem = true;
 	mRootFolder = new FileData(FOLDER, mStartPath, this);
 	mRootFolder->metadata.set("name", mFullName);
 
@@ -62,11 +63,12 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, con
 	mStartPath = "";
 	mIsCollectionSystem = CollectionSystem;
 	mIsGameSystem = false;
-	mFilterIndex = NULL;
 	mThemeFolder = themeFolder;
 	mRootFolder = new FileData(FOLDER, "", this);
 	mRootFolder->metadata.set("name", mFullName);
 }
+
+
 
 SystemData::~SystemData()
 {
@@ -80,8 +82,6 @@ SystemData::~SystemData()
 	}
 
 	delete mRootFolder;
-	if(mFilterIndex != NULL)
-		delete mFilterIndex;
 }
 
 
@@ -473,35 +473,4 @@ void SystemData::loadTheme()
 	}
 }
 
-void SystemData::setIsGameSystemStatus()
-{
-	// if this is a collection, it's not a game system
-	if(mIsCollectionSystem)
-	{
-		mIsGameSystem = false;
-		return;
-	}
 
-	// if the start path is empty, it's not a game system
-	if(mStartPath.empty())
-	{
-		mIsGameSystem = false;
-		return;
-	}
-
-	mIsGameSystem = true;
-}
-
-void SystemData::indexAllGameFilters(const FileData* folder)
-{
-	for(auto it = folder->getChildren().cbegin(); it != folder->getChildren().cend(); it++)
-	{
-		if((*it)->getType() == FOLDER)
-		{
-			indexAllGameFilters(*it);
-		}else{
-			if(mFilterIndex != NULL)
-				mFilterIndex->includeFile(*it);
-		}
-	}
-}

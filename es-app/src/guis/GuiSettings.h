@@ -1,3 +1,4 @@
+#pragma once
 #include "GuiComponent.h"
 #include "components/MenuComponent.h"
 

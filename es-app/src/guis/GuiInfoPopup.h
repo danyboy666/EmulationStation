@@ -1,31 +1,15 @@
 #pragma once
-#ifndef ES_APP_GUIS_GUI_INFO_POPUP_H
-#define ES_APP_GUIS_GUI_INFO_POPUP_H
-
 #include "GuiComponent.h"
-#include "Window.h"
+#include "components/TextComponent.h"
+#include <string>
 
-class ComponentGrid;
-class NinePatchComponent;
-
-class GuiInfoPopup : public GuiComponent, public Window::InfoPopup
+class GuiInfoPopup : public GuiComponent
 {
 public:
-	GuiInfoPopup(Window* window, std::string message, int duration, int fadein = 500, int fadeout = 500);
-	~GuiInfoPopup();
-	void render(const Transform4x4f& parentTrans) override;
-	inline void stop() override { running = false; };
+	GuiInfoPopup(Window* window, std::string message, int duration = 3000, int fadein = 250, int fadeout = 250);
+	void render() {}
+	void update(int deltaTime) {}
 private:
 	std::string mMessage;
 	int mDuration;
-	int mFadein;
-	int mFadeout;
-	int alpha;
-	bool updateState();
-	int mStartTime;
-	ComponentGrid* mGrid;
-	NinePatchComponent* mFrame;
-	bool running;
 };
-
-#endif // ES_APP_GUIS_GUI_INFO_POPUP_H
