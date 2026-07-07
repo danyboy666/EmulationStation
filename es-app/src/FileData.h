@@ -10,7 +10,7 @@ class SystemData;
 
 enum FileType
 {
-	GAME = 1,   // Cannot have children.
+	GAME = 1,
 	FOLDER = 2
 };
 
@@ -22,14 +22,10 @@ enum FileChangeType
 	FILE_SORTED
 };
 
-// Used for loading/saving gamelist.xml.
 const char* fileTypeToString(FileType type);
 FileType stringToFileType(const char* str);
-
-// Remove (.*) and [.*] from str
 std::string removeParenthesis(const std::string& str);
 
-// A tree node that holds information for a file.
 class FileData
 {
 public:
@@ -43,25 +39,21 @@ public:
 	inline const std::vector<FileData*>& getChildren() const { return mChildren; }
 	inline std::unordered_map<std::string, FileData*> getChildrenByFilename() const { return mChildrenByFilename; }
 	inline SystemData* getSystem() const { return mSystem; }
-	
 	virtual const std::string& getThumbnailPath() const;
 
-	std::vector<FileData*> getFilesRecursive(unsigned int typeMask) const;
-
-	void addChild(FileData* file); // Error if mType != FOLDER
-	void removeChild(FileData* file); //Error if mType != FOLDER
-
-	// Returns our best guess at the "real" name for this file (will strip parenthesis and attempt to perform MAME name translation)
 	std::string getCleanName() const;
+	std::vector<FileData*> getFilesRecursive(unsigned int typeMask) const;
+	void addChild(FileData* file);
+	void removeChild(FileData* file);
 
 	typedef bool ComparisonFunction(const FileData* a, const FileData* b);
+
 	struct SortType
 	{
 		ComparisonFunction* comparisonFunction;
 		bool ascending;
 		std::string description;
-
-		SortType(ComparisonFunction* sortFunction, bool sortAscending, const std::string & sortDescription) 
+		SortType(ComparisonFunction* sortFunction, bool sortAscending, const std::string & sortDescription)
 			: comparisonFunction(sortFunction), ascending(sortAscending), description(sortDescription) {}
 	};
 

@@ -9,6 +9,8 @@ set(ES_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ScraperCmdLine.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemData.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FileFilterIndex.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/VolumeControl.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Gamelist.h
 
@@ -44,6 +46,7 @@ set(ES_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/gamelist/GridGameListView.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/SystemView.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/ViewController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views/UIModeController.h
 
     # Animations
     ${CMAKE_CURRENT_SOURCE_DIR}/src/animations/LaunchAnimation.h
@@ -59,6 +62,8 @@ set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PlatformId.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ScraperCmdLine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FileFilterIndex.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/CollectionSystemManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/VolumeControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Gamelist.cpp
@@ -94,6 +99,7 @@ set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/gamelist/GridGameListView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/SystemView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views/ViewController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views/UIModeController.cpp
 )
 
 #-------------------------------------------------------------------------------

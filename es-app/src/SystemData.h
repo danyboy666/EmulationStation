@@ -38,6 +38,7 @@ public:
 	inline const std::shared_ptr<ThemeData>& getTheme() const { return mTheme; }
 	inline bool isCollection() { return mIsCollectionSystem; }
 	inline bool isGameSystem() { return mIsGameSystem; }
+	inline bool isVisible() { return mIsGameSystem || mIsCollectionSystem; }
 
 	std::string getGamelistPath(bool forWrite) const;
 	bool hasGamelist() const;
@@ -58,6 +59,7 @@ public:
 	inline SystemData* getPrev() const { auto it = getRevIterator(); it++; if(it == sSystemVector.crend()) it = sSystemVector.crbegin(); return *it; }
 
 	void loadTheme();
+	FileFilterIndex* getIndex() { return mFilterIndex; }
 
 	bool mIsCollectionSystem;
 	bool mIsGameSystem;

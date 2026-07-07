@@ -1,6 +1,7 @@
 #include "SystemData.h"
 #include "Gamelist.h"
 #include "CollectionSystemManager.h"
+#include "FileFilterIndex.h"
 #include "FileSorts.h"
 #include "Log.h"
 #include "Settings.h"
@@ -15,7 +16,6 @@
 #include <iostream>
 
 std::vector<SystemData*> SystemData::sSystemVector;
-
 namespace fs = boost::filesystem;
 
 SystemData::SystemData(const std::string& name, const std::string& fullName, SystemEnvironmentData* envData, const std::string& themeFolder, bool CollectionSystem)
@@ -26,6 +26,7 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, Sys
 	mThemeFolder = themeFolder;
 	mIsCollectionSystem = CollectionSystem;
 	mIsGameSystem = true;
+	mFilterIndex = NULL;
 
 	mRootFolder = new FileData(FOLDER, envData->mStartPath, this);
 	mRootFolder->metadata.set("name", mFullName);
@@ -34,10 +35,8 @@ SystemData::SystemData(const std::string& name, const std::string& fullName, Sys
 	{
 		if(!Settings::getInstance()->getBool("ParseGamelistOnly"))
 			populateFolder(mRootFolder);
-
 		if(!Settings::getInstance()->getBool("IgnoreGamelist"))
 			parseGamelist(this);
-
 		mRootFolder->sort(FileSorts::SortTypes.at(0));
 	}
 
@@ -53,6 +52,7 @@ SystemData::~SystemData()
 			updateGamelist(this);
 	}
 	delete mRootFolder;
+	delete mFilterIndex;
 }
 
 std::string strreplace(std::string str, const std::string& replace, const std::string& with)
@@ -96,7 +96,7 @@ void SystemData::launchGame(Window* window, FileData* game)
 	command = strreplace(command, "%BASENAME%", basename);
 	command = strreplace(command, "%ROM_RAW%", rom_raw);
 
-	LOG(LogInfo) << "	" << command;
+	LOG(LogInfo) << "\t" << command;
 	std::cout << "==============================================\n";
 	int exitCode = runSystemCommand(command);
 	std::cout << "==============================================\n";
@@ -111,7 +111,6 @@ void SystemData::launchGame(Window* window, FileData* game)
 
 	int timesPlayed = game->metadata.getInt("playcount") + 1;
 	game->metadata.set("playcount", std::to_string(static_cast<long long>(timesPlayed)));
-
 	boost::posix_time::ptime time = boost::posix_time::second_clock::universal_time();
 	game->metadata.setTime("lastplayed", time);
 }
@@ -125,7 +124,6 @@ void SystemData::populateFolder(FileData* folder)
 	{
 		if(folderStr.find(fs::canonical(folderPath).generic_string()) == 0) { LOG(LogWarning) << "Skipping recursive symlink"; return; }
 	}
-
 	fs::path filePath;
 	std::string extension;
 	bool isGame;
@@ -175,17 +173,17 @@ bool SystemData::loadConfig(Window* window)
 
 	pugi::xml_document doc;
 	pugi::xml_parse_result res = doc.load_file(path.c_str());
-	if(!res) { LOG(LogError) << "Could not parse es_systems.cfg file!"; LOG(LogError) << res.description(); return false; }
+	if(!res) { LOG(LogError) << "Could not parse es_systems.cfg file!"; return false; }
 
 	pugi::xml_node systemList = doc.child("systemList");
 	if(!systemList) { LOG(LogError) << "es_systems.cfg is missing <systemList>!"; return false; }
 
 	for(pugi::xml_node system = systemList.child("system"); system; system = system.next_sibling("system"))
 	{
-		std::string name, fullname, path, cmd, themeFolder;
+		std::string name, fullname, syspath, cmd, themeFolder;
 		name = system.child("name").text().get();
 		fullname = system.child("fullname").text().get();
-		path = system.child("path").text().get();
+		syspath = system.child("path").text().get();
 		std::vector<std::string> extensions = readList(system.child("extension").text().get());
 		cmd = system.child("command").text().get();
 		const char* platformList = system.child("platform").text().get();
@@ -202,14 +200,13 @@ bool SystemData::loadConfig(Window* window)
 				platformIds.push_back(platformId);
 		}
 		themeFolder = system.child("theme").text().as_string(name.c_str());
-
-		if(name.empty() || path.empty() || extensions.empty() || cmd.empty())
+		if(name.empty() || syspath.empty() || extensions.empty() || cmd.empty())
 		{ LOG(LogError) << "System \"" << name << "\" is missing name, path, extension, or command!"; continue; }
 
-		boost::filesystem::path genericPath(path);
-		path = genericPath.generic_string();
+		boost::filesystem::path genericPath(syspath);
+		syspath = genericPath.generic_string();
 
-		SystemEnvironmentData* sysData = new SystemEnvironmentData{path, extensions, cmd, platformIds};
+		SystemEnvironmentData* sysData = new SystemEnvironmentData{syspath, extensions, cmd, platformIds};
 		SystemData* newSys = new SystemData(name, fullname, sysData, themeFolder);
 		if(newSys->getRootFolder()->getChildren().size() == 0)
 		{ LOG(LogWarning) << "System \"" << name << "\" has no games! Ignoring it."; delete newSys; }
@@ -223,7 +220,6 @@ void SystemData::writeExampleConfig(const std::string& path)
 	std::ofstream file(path.c_str());
 	file << "<systemList>\n  <system>\n    <name>nes</name>\n    <fullname>Nintendo Entertainment System</fullname>\n    <path>~/roms/nes</path>\n    <extension>.nes .NES</extension>\n    <command>retroarch -L ~/cores/libretro-fceumm.so %ROM%</command>\n    <platform>nes</platform>\n    <theme>nes</theme>\n  </system>\n</systemList>\n";
 	file.close();
-	LOG(LogError) << "Example config written!  Go read it at \"" << path << "\"!";
 }
 
 void SystemData::deleteSystems()
@@ -281,5 +277,6 @@ void SystemData::indexAllGameFilters(const FileData* folder)
 	for(auto it = folder->getChildren().cbegin(); it != folder->getChildren().cend(); it++)
 	{
 		if((*it)->getType() == FOLDER) indexAllGameFilters(*it);
+		else if(mFilterIndex != NULL) mFilterIndex->addToIndex(*it);
 	}
 }

@@ -28,21 +28,19 @@ public:
 	void loadCollectionSystems();
 	void loadEnabledListFromSettings();
 	void updateSystemsList();
-	void refreshCollectionSystems();
 
 	inline std::map<std::string, CollectionSystemData>& getAutoCollectionSystems() { return mAutoCollectionSystemsData; }
-	inline std::map<std::string, CollectionSystemData> getCustomCollectionSystems() { return mCustomCollectionSystemsData; }
 
 	bool isEditing() { return false; }
 	std::string getEditingCollection() { return ""; }
 	void exitEditMode() {}
 	void setEditMode(const std::string& name) {}
-
 	std::vector<std::string> getUnusedSystemsFromTheme() { return std::vector<std::string>(); }
 	SystemData* addNewCustomCollection(const std::string& name, bool needSave = true) { return nullptr; }
 	bool saveCustomCollection(SystemData* sys) { return false; }
 	std::string getValidNewCollectionName(const std::string& name, int index = 0) { return name; }
 	bool toggleGameInCollection(SystemData* file, const std::string& collectionName = "favorites");
+	inline std::map<std::string, CollectionSystemData> getCustomCollectionSystems() { return mCustomCollectionSystemsData; }
 
 private:
 	CollectionSystemManager(Window* window);

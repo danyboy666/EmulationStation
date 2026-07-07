@@ -201,3 +201,6 @@ FileData::SortType getSortTypeFromString(std::string desc) {
 	}
 	return FileSorts::SortTypes.at(0);
 }
+
+#include "SystemData.h"
+#include "FileSorts.h"
