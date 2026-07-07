@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <boost/filesystem.hpp>
 #include "MetaData.h"
 
@@ -40,6 +41,7 @@ public:
 	inline const boost::filesystem::path& getPath() const { return mPath; }
 	inline FileData* getParent() const { return mParent; }
 	inline const std::vector<FileData*>& getChildren() const { return mChildren; }
+	inline std::unordered_map<std::string, FileData*> getChildrenByFilename() const { return mChildrenByFilename; }
 	inline SystemData* getSystem() const { return mSystem; }
 	
 	virtual const std::string& getThumbnailPath() const;
@@ -68,10 +70,28 @@ public:
 
 	MetaDataList metadata;
 
-private:
+protected:
 	FileType mType;
 	boost::filesystem::path mPath;
 	SystemData* mSystem;
 	FileData* mParent;
 	std::vector<FileData*> mChildren;
+	std::unordered_map<std::string, FileData*> mChildrenByFilename;
 };
+
+class CollectionFileData : public FileData
+{
+public:
+	CollectionFileData(FileData* file, SystemData* system);
+	~CollectionFileData();
+	const std::string& getName();
+	void refreshMetadata();
+	FileData* getSourceFileData();
+	std::string getKey();
+private:
+	FileData* mSourceFileData;
+	std::string mCollectionFileName;
+	bool mDirty;
+};
+
+FileData::SortType getSortTypeFromString(std::string desc);

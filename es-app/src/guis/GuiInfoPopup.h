@@ -1,10 +1,7 @@
 #pragma once
 #include "GuiComponent.h"
-#include "components/TextComponent.h"
 #include <string>
-
-class GuiInfoPopup : public GuiComponent
-{
+class GuiInfoPopup : public GuiComponent {
 public:
 	GuiInfoPopup(Window* window, std::string message, int duration = 3000, int fadein = 250, int fadeout = 250);
 	void render() {}

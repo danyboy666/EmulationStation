@@ -153,3 +153,4 @@ SETTINGS_GETSET(bool, mBoolMap, getBool, setBool);
 SETTINGS_GETSET(int, mIntMap, getInt, setInt);
 SETTINGS_GETSET(float, mFloatMap, getFloat, setFloat);
 SETTINGS_GETSET(const std::string&, mStringMap, getString, setString);
+std::map<std::string, int> Settings::getMap(const std::string& name) { return std::map<std::string, int>(); }

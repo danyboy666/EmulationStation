@@ -1,7 +1,7 @@
 #include "guis/GuiInfoPopup.h"
-#include "Renderer.h"
 #include "Window.h"
-
+#include "Renderer.h"
+#include "resources/Font.h"
 GuiInfoPopup::GuiInfoPopup(Window* window, std::string message, int duration, int fadein, int fadeout)
 	: GuiComponent(window), mMessage(message), mDuration(duration)
 {

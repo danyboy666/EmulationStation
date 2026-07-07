@@ -103,6 +103,7 @@ void FileData::addChild(FileData* file)
 	assert(file->getParent() == NULL);
 
 	mChildren.push_back(file);
+	mChildrenByFilename[file->getPath().filename().string()] = file;
 	file->mParent = this;
 }
 
@@ -141,4 +142,62 @@ void FileData::sort(ComparisonFunction& comparator, bool ascending)
 void FileData::sort(const SortType& type)
 {
 	sort(*type.comparisonFunction, type.ascending);
+}
+
+#include "SystemData.h"
+#include "FileSorts.h"
+#include "utils/StringUtil.h"
+
+CollectionFileData::CollectionFileData(FileData* file, SystemData* system)
+	: FileData(file->getType(), file->getPath(), system)
+{
+	mSourceFileData = file;
+	mDirty = true;
+	mParent = NULL;
+	metadata = file->metadata;
+}
+
+CollectionFileData::~CollectionFileData()
+{
+	if(mParent)
+		mParent->removeChild(this);
+	mParent = NULL;
+}
+
+std::string CollectionFileData::getKey() {
+	return getPath().string();
+}
+
+FileData* CollectionFileData::getSourceFileData()
+{
+	return mSourceFileData;
+}
+
+void CollectionFileData::refreshMetadata()
+{
+	metadata = mSourceFileData->metadata;
+	mDirty = true;
+}
+
+const std::string& CollectionFileData::getName()
+{
+	if (mDirty) {
+		mCollectionFileName = Utils::String::removeParenthesis(mSourceFileData->metadata.get("name"));
+		mCollectionFileName += " [" + Utils::String::toUpper(mSourceFileData->getSystem()->getName()) + "]";
+		mDirty = false;
+	}
+	return mCollectionFileName;
+}
+
+FileData::SortType getSortTypeFromString(std::string desc) {
+	std::vector<FileData::SortType> SortTypes = FileSorts::SortTypes;
+	for(unsigned int i = 0; i < FileSorts::SortTypes.size(); i++)
+	{
+		const FileData::SortType& sort = FileSorts::SortTypes.at(i);
+		if(sort.description == desc)
+		{
+			return sort;
+		}
+	}
+	return FileSorts::SortTypes.at(0);
 }
