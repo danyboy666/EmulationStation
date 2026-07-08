@@ -84,7 +84,7 @@ void GuiInputConfig::update(int deltaTime)
 
 void GuiInputConfig::rowDone()
 {
-	if(mConfiguringAll) { if(!mList->moveCursor(1)) { mConfiguringAll = false; mConfiguringRow = false; } else setPress(mMappings.at(mList->getCursorId())); }
+	if(mConfiguringAll) { if(!mList->moveCursor(1)) { mConfiguringAll = false; mConfiguringRow = false; InputManager::getInstance()->writeDeviceConfig(mTargetConfig); delete this; } else setPress(mMappings.at(mList->getCursorId())); }
 	else mConfiguringRow = false;
 }
 
@@ -99,4 +99,9 @@ bool GuiInputConfig::assign(Input input, int inputId)
 }
 
 GuiInputConfig::~GuiInputConfig() {}
-bool GuiInputConfig::input(InputConfig* config, Input input) { return GuiComponent::input(config, input); }
+bool GuiInputConfig::input(InputConfig* config, Input input) {
+	if(GuiComponent::input(config, input)) return true;
+	if(config->isMappedTo("b", input) && input.value) { InputManager::getInstance()->writeDeviceConfig(mTargetConfig); delete this; return true; }
+	if(input.device == DEVICE_KEYBOARD && input.type == TYPE_KEY && input.value && input.id == SDLK_ESCAPE) { InputManager::getInstance()->writeDeviceConfig(mTargetConfig); delete this; return true; }
+	return false;
+}
