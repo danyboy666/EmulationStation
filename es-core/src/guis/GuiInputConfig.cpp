@@ -13,23 +13,37 @@ static const bool inputSkippable[inputCount] = { false,false,false,false,true,tr
 static const char* inputDispName[inputCount] = { "D-PAD UP","D-PAD DOWN","D-PAD LEFT","D-PAD RIGHT","START","SELECT","BUTTON A / EAST","BUTTON B / SOUTH","BUTTON X / NORTH","BUTTON Y / WEST","LEFT SHOULDER","RIGHT SHOULDER","LEFT TRIGGER","RIGHT TRIGGER","LEFT THUMB","RIGHT THUMB","LEFT ANALOG UP","LEFT ANALOG DOWN","LEFT ANALOG LEFT","LEFT ANALOG RIGHT","RIGHT ANALOG UP","RIGHT ANALOG DOWN","RIGHT ANALOG LEFT","RIGHT ANALOG RIGHT","HOTKEY" };
 #define HOLD_TO_SKIP_MS 1000
 
-GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mTargetConfig(target), mHoldingInput(false)
+GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mBackground(window, ":/frame.png"), mGrid(window, Eigen::Vector2i(1, 7)), mTargetConfig(target), mHoldingInput(false)
 {
 	LOG(LogInfo) << "Configuring device " << target->getDeviceId() << " (" << target->getDeviceName() << ").";
 	if(reconfigureAll) target->clear();
 	mConfiguringAll = reconfigureAll;
 	mConfiguringRow = mConfiguringAll;
+	addChild(&mBackground);
+	addChild(&mGrid);
+
+	mGrid.setEntry(std::make_shared<GuiComponent>(mWindow), Eigen::Vector2i(0, 0), false);
+	mTitle = std::make_shared<TextComponent>(mWindow, "CONFIGURING", Font::get(FONT_SIZE_LARGE), 0x555555FF, ALIGN_CENTER);
+	mGrid.setEntry(mTitle, Eigen::Vector2i(0, 1), false, true);
+
+	std::stringstream ss;
+	if(target->getDeviceId() == DEVICE_KEYBOARD) ss << "KEYBOARD";
+	else ss << "GAMEPAD " << (target->getDeviceId() + 1);
+	mSubtitle1 = std::make_shared<TextComponent>(mWindow, strToUpper(ss.str()), Font::get(FONT_SIZE_MEDIUM), 0x555555FF, ALIGN_CENTER);
+	mGrid.setEntry(mSubtitle1, Eigen::Vector2i(0, 2), false, true);
+
+	mSubtitle2 = std::make_shared<TextComponent>(mWindow, "HOLD ANY BUTTON TO SKIP", Font::get(FONT_SIZE_SMALL), 0x99999900, ALIGN_CENTER);
+	mGrid.setEntry(mSubtitle2, Eigen::Vector2i(0, 3), false, true);
+
 	mList = std::make_shared<ComponentList>(mWindow);
-	mList->setSize(Renderer::getScreenWidth() * 0.6f, Renderer::getScreenHeight() * 0.6f);
-	mList->setPosition((Renderer::getScreenWidth() - mList->getSize().x()) / 2, Renderer::getScreenHeight() * 0.2f);
-	addChild(mList.get());
+	mGrid.setEntry(mList, Eigen::Vector2i(0, 5), true, true);
 
 	for(int i = 0; i < inputCount; i++)
 	{
 		ComponentListRow row;
 		auto text = std::make_shared<TextComponent>(mWindow, inputDispName[i], Font::get(FONT_SIZE_MEDIUM), 0x777777FF);
 		row.addElement(text, true);
-		auto mapping = std::make_shared<TextComponent>(mWindow, "-NOT DEFINED-", Font::get(FONT_SIZE_MEDIUM), 0x999999FF, ALIGN_RIGHT);
+		auto mapping = std::make_shared<TextComponent>(mWindow, "-NOT DEFINED-", Font::get(FONT_SIZE_MEDIUM, FONT_PATH_LIGHT), 0x999999FF, ALIGN_RIGHT);
 		setNotDefined(mapping);
 		row.addElement(mapping, true);
 		mMappings.push_back(mapping);
@@ -44,12 +58,19 @@ GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfi
 	if(mConfiguringAll) setPress(mMappings.front());
 	mList->setCursorChangedCallback([this](CursorState state) { mSubtitle2->setOpacity(inputSkippable[mList->getCursorId()] * 255); });
 
-	auto subtitle = std::make_shared<TextComponent>(mWindow, "HOLD ANY BUTTON TO SKIP", Font::get(FONT_SIZE_SMALL), 0x999999FF, ALIGN_CENTER);
-	subtitle->setPosition((Renderer::getScreenWidth() - subtitle->getSize().x()) / 2, Renderer::getScreenHeight() * 0.87f);
-	mSubtitle2 = subtitle;
-	addChild(subtitle.get());
+	setSize(Renderer::getScreenWidth() * 0.6f, Renderer::getScreenHeight() * 0.75f);
+	setPosition((Renderer::getScreenWidth() - mSize.x()) / 2, (Renderer::getScreenHeight() - mSize.y()) / 2);
 }
 
+void GuiInputConfig::onSizeChanged()
+{
+	mBackground.fitTo(mSize, Eigen::Vector3f::Zero(), Eigen::Vector2f(-32, -32));
+	mGrid.setSize(mSize);
+	mGrid.setRowHeightPerc(1, mTitle->getFont()->getHeight()*0.75f / mSize.y());
+	mGrid.setRowHeightPerc(2, mSubtitle1->getFont()->getHeight() / mSize.y());
+	mGrid.setRowHeightPerc(3, mSubtitle2->getFont()->getHeight() / mSize.y());
+	mGrid.setRowHeightPerc(5, 0.65f);
+}
 
 void GuiInputConfig::update(int deltaTime)
 {
@@ -76,5 +97,6 @@ bool GuiInputConfig::assign(Input input, int inputId)
 	if(mTargetConfig->getMappedTo(input).size() > 0 && !mTargetConfig->isMappedTo(inputName[inputId], input)) { setAssignedTo(mMappings.at(inputId), input); mMappings.at(inputId)->setText("ALREADY TAKEN"); mMappings.at(inputId)->setColor(0x656565FF); return false; }
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
 }
+
 GuiInputConfig::~GuiInputConfig() {}
 bool GuiInputConfig::input(InputConfig* config, Input input) { return GuiComponent::input(config, input); }

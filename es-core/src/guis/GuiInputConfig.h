@@ -1,5 +1,7 @@
 #pragma once
 #include "GuiComponent.h"
+#include "components/NinePatchComponent.h"
+#include "components/ComponentGrid.h"
 #include "components/ComponentList.h"
 #include "InputConfig.h"
 #include <memory>
@@ -13,6 +15,7 @@ public:
 	~GuiInputConfig();
 	bool input(InputConfig* config, Input input);
 	void update(int deltaTime);
+	void onSizeChanged();
 	std::vector<HelpPrompt> getHelpPrompts() { return std::vector<HelpPrompt>(); }
 private:
 	void rowDone();
@@ -20,11 +23,15 @@ private:
 	void setNotDefined(const std::shared_ptr<TextComponent>& text);
 	void setAssignedTo(const std::shared_ptr<TextComponent>& text, Input input);
 	bool assign(Input input, int inputId);
+	NinePatchComponent mBackground;
+	ComponentGrid mGrid;
 	InputConfig* mTargetConfig;
 	bool mHoldingInput, mConfiguringAll, mConfiguringRow;
 	Input mHeldInput;
 	int mHeldTime, mHeldInputId;
-	std::shared_ptr<ComponentList> mList;
+	std::shared_ptr<TextComponent> mTitle;
+	std::shared_ptr<TextComponent> mSubtitle1;
 	std::shared_ptr<TextComponent> mSubtitle2;
+	std::shared_ptr<ComponentList> mList;
 	std::vector<std::shared_ptr<TextComponent>> mMappings;
 };
