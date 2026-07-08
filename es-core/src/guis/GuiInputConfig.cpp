@@ -82,4 +82,4 @@ bool GuiInputConfig::assign(Input input, int inputId)
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
 }
 GuiInputConfig::~GuiInputConfig() {}
-bool GuiInputConfig::input(InputConfig* config, Input input) { return false; }
+bool GuiInputConfig::input(InputConfig* config, Input input) { if(GuiComponent::input(config, input)) return true; if(config->isMappedTo("b", input) && input.value) { delete this; return true; } return false; }
