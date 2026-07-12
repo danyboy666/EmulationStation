@@ -10147,7 +10147,7 @@ PUGI_IMPL_NS_BEGIN
 		ast_func_sum,					// sum(left)
 		ast_func_floor,					// floor(left)
 		ast_func_ceiling,				// ceiling(left)
-		ast_func_round,					// round(left)
+		ast_func_round,					// std::round(left)
 		ast_step,						// process set left with step
 		ast_step_root,					// select root node
 
