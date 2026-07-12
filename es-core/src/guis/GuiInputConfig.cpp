@@ -50,12 +50,7 @@ GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfi
 		row.input_handler = [this, i, mapping](InputConfig* config, Input input) -> bool {
 			if(config != mTargetConfig) return false;
 			if(!mConfiguringRow) { if(config->isMappedTo("a", input) && input.value) { mConfiguringRow = true; setPress(mapping); return true; } return false; }
-			if(input.value != 0) {
-				// Axis inputs (triggers): assign immediately, don't wait for release
-				if(input.type == TYPE_AXIS) { if(assign(input, i)) rowDone(); return true; }
-				// Button inputs: use hold-to-skip logic
-				if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; return true;
-			}
+			if(input.value != 0) { if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; return true; }
 			else { if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type) return true; mHoldingInput = false; if(assign(mHeldInput, i)) rowDone(); return true; }
 		};
 		mList->addRow(row);
@@ -99,6 +94,13 @@ void GuiInputConfig::setAssignedTo(const std::shared_ptr<TextComponent>& t, Inpu
 
 bool GuiInputConfig::assign(Input input, int inputId)
 {
+	// Axis inputs can share the same axis ID (e.g. L2/R2 both use axis 4 but different values)
+	if(input.type == TYPE_AXIS) {
+		setAssignedTo(mMappings.at(inputId), input);
+		input.configured = true;
+		mTargetConfig->mapInput(inputName[inputId], input);
+		return true;
+	}
 	if(mTargetConfig->getMappedTo(input).size() > 0 && !mTargetConfig->isMappedTo(inputName[inputId], input)) { setAssignedTo(mMappings.at(inputId), input); mMappings.at(inputId)->setText("ALREADY TAKEN"); mMappings.at(inputId)->setColor(0x656565FF); return false; }
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
 }
