@@ -129,8 +129,9 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		}
 	}
 
-	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2) instead of generic 2,5
-	bool genericTrigger = isPlaystation ? (input.id == 4 || input.id == 5) : (input.id == 2 || input.id == 5);
+	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2) — no filtering needed
+	// since they're on separate axes and press+release works naturally
+	bool genericTrigger = isPlaystation ? false : (input.id == 2 || input.id == 5);
 	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
 
 	// ignore negative pole for axes only when triggers are being configured
