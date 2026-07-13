@@ -130,14 +130,19 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		return true;
 	}
 
-	if(input.type == TYPE_AXIS && genericTrigger)
+	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger))
 	{
-		if(strstr(inputName[inputId], "Trigger") != NULL)
+		if(strstr(inputName[inputId], "LeftTrigger") != NULL)
 		{
-			if(input.value == 1)
-				mSkipAxis = true;
-			else if(input.value == -1)
-				return true;
+			// LeftTrigger: accept negative pole only (value < 0)
+			if(input.value < 0) return false;
+			else return true;
+		}
+		else if(strstr(inputName[inputId], "RightTrigger") != NULL)
+		{
+			// RightTrigger: accept positive pole only (value > 0)
+			if(input.value > 0) return false;
+			else return true;
 		}
 		else if(mSkipAxis)
 		{
