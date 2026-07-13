@@ -119,14 +119,10 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0 // Anbernic RG P01 has same issue
 	);
 
-	if((isPlaystation || isAnbernic)
-		&& InputManager::getInstance()->getAxisCountByDevice(config->getDeviceId()) == 6)
+	if(isAnbernic)
 	{
-		// digital triggers are unwanted
-		if((
-			(isPlaystation && (input.id == 6 || input.id == 7))
-			|| (isAnbernic && (input.id == 8 || input.id == 9))
-			) && input.type == TYPE_BUTTON)
+		// Anbernic: digital triggers are unwanted
+		if((input.id == 8 || input.id == 9) && input.type == TYPE_BUTTON)
 		{
 			mHoldingInput = false;
 			return true;
