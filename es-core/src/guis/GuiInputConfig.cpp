@@ -95,13 +95,6 @@ void GuiInputConfig::setAssignedTo(const std::shared_ptr<TextComponent>& t, Inpu
 
 bool GuiInputConfig::assign(Input input, int inputId)
 {
-	// Axis inputs can share the same axis ID (e.g. L2/R2 both use axis 4 but different values)
-	if(input.type == TYPE_AXIS) {
-		setAssignedTo(mMappings.at(inputId), input);
-		input.configured = true;
-		mTargetConfig->mapInput(inputName[inputId], input);
-		return true;
-	}
 	if(mTargetConfig->getMappedTo(input).size() > 0 && !mTargetConfig->isMappedTo(inputName[inputId], input)) { setAssignedTo(mMappings.at(inputId), input); mMappings.at(inputId)->setText("ALREADY TAKEN"); mMappings.at(inputId)->setColor(0x656565FF); return false; }
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
 }
@@ -109,42 +102,65 @@ bool GuiInputConfig::assign(Input input, int inputId)
 bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId)
 {
 #if defined(__linux__)
+	// on Linux, some gamepads return both an analog axis and a digital button for the trigger;
+	// we want the analog axis only, so this function removes the button press event
 	bool isPlaystation = (
 		strstr(config->getDeviceName().c_str(), "PLAYSTATION") != NULL
-		|| strstr(config->getDeviceName().c_str(), "Sony Interactive") != NULL
+		|| strstr(config->getDeviceName().c_str(), "Sony Interactive") != NULL // Official dualshock 4
 		|| strstr(config->getDeviceName().c_str(), "PS3 Ga") != NULL
 		|| strstr(config->getDeviceName().c_str(), "PS(R) Ga") != NULL
 		|| strstr(config->getDeviceName().c_str(), "PS4") != NULL
 		|| strstr(config->getDeviceName().c_str(), "Wireless Controller") != NULL
+		// BigBen kid's PS3 gamepad 146b:0902, matched on SDL GUID because its name "Bigben Interactive Bigben Game Pad" may be too generic
 		|| strcmp(config->getDeviceGUIDString().c_str(), "030000006b1400000209000011010000") == 0
-		|| strcmp(config->getDeviceGUIDString().c_str(), "03008fe54c050000cc09000000016800") == 0
+		|| strcmp(config->getDeviceGUIDString().c_str(), "03008fe54c050000cc09000000016800") == 0 // DS4 V2
 	);
 	bool isAnbernic = (
-		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0
+		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0 // Anbernic RG P01 has same issue
 	);
 
-	// PS4 Linux: DS4 triggers both on axis 4 (L2=-1, R2=+1)
-	bool genericTrigger = isPlaystation ? (input.id == 4 || input.id == 5) : (input.id == 2 || input.id == 5);
-	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
-	bool isTriggerRow = strstr(inputName[inputId], "LeftTrigger") != NULL || strstr(inputName[inputId], "RightTrigger") != NULL;
-
-	if(isPlaystation && input.type == TYPE_BUTTON && (input.id == 6 || input.id == 7))
+	if((isPlaystation || isAnbernic)
+		&& InputManager::getInstance()->getAxisCountByDevice(config->getDeviceId()) == 6)
 	{
-		mHoldingInput = false;
-		return true;
+		// digital triggers are unwanted
+		if((
+			(isPlaystation && (input.id == 6 || input.id == 7))
+			|| (isAnbernic && (input.id == 8 || input.id == 9))
+			) && input.type == TYPE_BUTTON)
+		{
+			mHoldingInput = false;
+			return true;
+		}
 	}
 
-	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger || (isPlaystation && isTriggerRow)))
+	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2) instead of generic 2,5
+	bool genericTrigger = isPlaystation ? (input.id == 4 || input.id == 5) : (input.id == 2 || input.id == 5);
+	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
+
+	// ignore negative pole for axes only when triggers are being configured
+	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger))
 	{
-		if(strstr(inputName[inputId], "LeftTrigger") != NULL)
+		if(strstr(inputName[inputId], "Trigger") != NULL)
 		{
-			if(input.value < 0) return false;
-			else return true;
-		}
-		else if(strstr(inputName[inputId], "RightTrigger") != NULL)
-		{
-			if(input.value > 0) return false;
-			else return true;
+			// PS4 DS4: L2 is negative pole, R2 is positive pole
+			if(isPlaystation)
+			{
+				if(strstr(inputName[inputId], "LeftTrigger") != NULL)
+				{
+					if(input.value < 0) { mSkipAxis = true; return false; }
+					else if(input.value > 0) return true;
+				}
+				else if(strstr(inputName[inputId], "RightTrigger") != NULL)
+				{
+					if(input.value > 0) { mSkipAxis = true; return false; }
+					else if(input.value < 0) return true;
+				}
+			}
+			else
+			{
+				if(input.value == 1) mSkipAxis = true;
+				else if(input.value == -1) return true;
+			}
 		}
 		else if(mSkipAxis)
 		{
