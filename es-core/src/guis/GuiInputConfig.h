@@ -23,10 +23,12 @@ private:
 	void setNotDefined(const std::shared_ptr<TextComponent>& text);
 	void setAssignedTo(const std::shared_ptr<TextComponent>& text, Input input);
 	bool assign(Input input, int inputId);
+	bool filterTrigger(Input input, InputConfig* config, int inputId);
 	NinePatchComponent mBackground;
 	ComponentGrid mGrid;
 	InputConfig* mTargetConfig;
 	bool mHoldingInput, mConfiguringAll, mConfiguringRow;
+	bool mSkipAxis;
 	Input mHeldInput;
 	int mHeldTime, mHeldInputId;
 	std::shared_ptr<TextComponent> mTitle;

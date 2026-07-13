@@ -13,7 +13,7 @@ static const bool inputSkippable[inputCount] = { false,false,false,false,true,tr
 static const char* inputDispName[inputCount] = { "D-PAD UP","D-PAD DOWN","D-PAD LEFT","D-PAD RIGHT","START","SELECT","BUTTON A / EAST","BUTTON B / SOUTH","BUTTON X / NORTH","BUTTON Y / WEST","LEFT SHOULDER","RIGHT SHOULDER","LEFT TRIGGER","RIGHT TRIGGER","LEFT THUMB","RIGHT THUMB","LEFT ANALOG UP","LEFT ANALOG DOWN","LEFT ANALOG LEFT","LEFT ANALOG RIGHT","RIGHT ANALOG UP","RIGHT ANALOG DOWN","RIGHT ANALOG LEFT","RIGHT ANALOG RIGHT","HOTKEY" };
 #define HOLD_TO_SKIP_MS 1000
 
-GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mBackground(window, ":/frame.png"), mGrid(window, Eigen::Vector2i(1, 7)), mTargetConfig(target), mHoldingInput(false)
+GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mBackground(window, ":/frame.png"), mGrid(window, Eigen::Vector2i(1, 7)), mTargetConfig(target), mHoldingInput(false), mSkipAxis(false)
 {
 	LOG(LogInfo) << "Configuring device " << target->getDeviceId() << " (" << target->getDeviceName() << ").";
 	if(reconfigureAll) target->clear();
@@ -50,6 +50,7 @@ GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfi
 		row.input_handler = [this, i, mapping](InputConfig* config, Input input) -> bool {
 			if(config != mTargetConfig) return false;
 			if(!mConfiguringRow) { if(config->isMappedTo("a", input) && input.value) { mConfiguringRow = true; setPress(mapping); return true; } return false; }
+			if(filterTrigger(input, config, i)) return false;
 			if(input.value != 0) { if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; return true; }
 			else { if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type) return true; mHoldingInput = false; if(assign(mHeldInput, i)) rowDone(); return true; }
 		};
@@ -103,6 +104,53 @@ bool GuiInputConfig::assign(Input input, int inputId)
 	}
 	if(mTargetConfig->getMappedTo(input).size() > 0 && !mTargetConfig->isMappedTo(inputName[inputId], input)) { setAssignedTo(mMappings.at(inputId), input); mMappings.at(inputId)->setText("ALREADY TAKEN"); mMappings.at(inputId)->setColor(0x656565FF); return false; }
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
+}
+
+bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId)
+{
+#if defined(__linux__)
+	bool isPlaystation = (
+		strstr(config->getDeviceName().c_str(), "PLAYSTATION") != NULL
+		|| strstr(config->getDeviceName().c_str(), "Sony Interactive") != NULL
+		|| strstr(config->getDeviceName().c_str(), "PS3 Ga") != NULL
+		|| strstr(config->getDeviceName().c_str(), "PS(R) Ga") != NULL
+		|| strcmp(config->getDeviceGUIDString().c_str(), "030000006b1400000209000011010000") == 0
+	);
+	bool isAnbernic = (
+		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0
+	);
+
+	// PS4 Linux: DS4 triggers both on axis 4 (L2=-1, R2=+1)
+	bool genericTrigger = isPlaystation ? (input.id == 4 || input.id == 5) : (input.id == 2 || input.id == 5);
+	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
+
+	if(isPlaystation && input.type == TYPE_BUTTON && (input.id == 6 || input.id == 7))
+	{
+		mHoldingInput = false;
+		return true;
+	}
+
+	if(input.type == TYPE_AXIS && genericTrigger)
+	{
+		if(strstr(inputName[inputId], "Trigger") != NULL)
+		{
+			if(input.value == 1)
+				mSkipAxis = true;
+			else if(input.value == -1)
+				return true;
+		}
+		else if(mSkipAxis)
+		{
+			mSkipAxis = false;
+			return true;
+		}
+	}
+#else
+	(void)input;
+	(void)config;
+	(void)inputId;
+#endif
+	return false;
 }
 
 GuiInputConfig::~GuiInputConfig() {}
