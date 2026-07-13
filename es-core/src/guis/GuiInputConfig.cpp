@@ -129,40 +129,38 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		}
 	}
 
-	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2) — no filtering needed
-	// since they're on separate axes and press+release works naturally
+	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2)
+	// Filter by axis ID: LeftTrigger only accepts axis 4, RightTrigger only accepts axis 5
+	// This prevents L2 release overshoot from poisoning RightTrigger row
 	bool genericTrigger = isPlaystation ? false : (input.id == 2 || input.id == 5);
 	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
 
-	// ignore negative pole for axes only when triggers are being configured
-	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger))
+	if(input.type == TYPE_AXIS)
 	{
-		if(strstr(inputName[inputId], "Trigger") != NULL)
+		if(isPlaystation)
 		{
-			// PS4 DS4: L2 is negative pole, R2 is positive pole
-			if(isPlaystation)
-			{
-				if(strstr(inputName[inputId], "LeftTrigger") != NULL)
-				{
-					if(input.value < 0) { mSkipAxis = true; return false; }
-					else if(input.value > 0) return true;
-				}
-				else if(strstr(inputName[inputId], "RightTrigger") != NULL)
-				{
-					if(input.value > 0) { mSkipAxis = true; return false; }
-					else if(input.value < 0) return true;
-				}
-			}
-			else
+			// PS4: accept only the correct axis per trigger row
+			if(strstr(inputName[inputId], "LeftTrigger") != NULL && input.id == 4)
+				return false;  // accept axis 4 on LeftTrigger row
+			else if(strstr(inputName[inputId], "RightTrigger") != NULL && input.id == 5)
+				return false;  // accept axis 5 on RightTrigger row
+			// reject everything else on trigger rows
+			else if(strstr(inputName[inputId], "Trigger") != NULL)
+				return true;
+		}
+		else if(genericTrigger || anbernicTrigger)
+		{
+			// Non-PlayStation: use upstream polarity filtering
+			if(strstr(inputName[inputId], "Trigger") != NULL)
 			{
 				if(input.value == 1) mSkipAxis = true;
 				else if(input.value == -1) return true;
 			}
-		}
-		else if(mSkipAxis)
-		{
-			mSkipAxis = false;
-			return true;
+			else if(mSkipAxis)
+			{
+				mSkipAxis = false;
+				return true;
+			}
 		}
 	}
 #else
