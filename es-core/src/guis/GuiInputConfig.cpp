@@ -114,7 +114,10 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		|| strstr(config->getDeviceName().c_str(), "Sony Interactive") != NULL
 		|| strstr(config->getDeviceName().c_str(), "PS3 Ga") != NULL
 		|| strstr(config->getDeviceName().c_str(), "PS(R) Ga") != NULL
+		|| strstr(config->getDeviceName().c_str(), "PS4") != NULL
+		|| strstr(config->getDeviceName().c_str(), "Wireless Controller") != NULL
 		|| strcmp(config->getDeviceGUIDString().c_str(), "030000006b1400000209000011010000") == 0
+		|| strcmp(config->getDeviceGUIDString().c_str(), "03008fe54c050000cc09000000016800") == 0
 	);
 	bool isAnbernic = (
 		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0
@@ -123,6 +126,7 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 	// PS4 Linux: DS4 triggers both on axis 4 (L2=-1, R2=+1)
 	bool genericTrigger = isPlaystation ? (input.id == 4 || input.id == 5) : (input.id == 2 || input.id == 5);
 	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
+	bool isTriggerRow = strstr(inputName[inputId], "LeftTrigger") != NULL || strstr(inputName[inputId], "RightTrigger") != NULL;
 
 	if(isPlaystation && input.type == TYPE_BUTTON && (input.id == 6 || input.id == 7))
 	{
@@ -130,17 +134,15 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		return true;
 	}
 
-	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger))
+	if(input.type == TYPE_AXIS && (genericTrigger || anbernicTrigger || (isPlaystation && isTriggerRow)))
 	{
 		if(strstr(inputName[inputId], "LeftTrigger") != NULL)
 		{
-			// LeftTrigger: accept negative pole only (value < 0)
 			if(input.value < 0) return false;
 			else return true;
 		}
 		else if(strstr(inputName[inputId], "RightTrigger") != NULL)
 		{
-			// RightTrigger: accept positive pole only (value > 0)
 			if(input.value > 0) return false;
 			else return true;
 		}
