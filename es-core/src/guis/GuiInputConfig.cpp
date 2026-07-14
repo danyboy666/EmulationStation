@@ -141,15 +141,16 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 		{
 			// PS4 DS4: both triggers share axis 4, polarity determines which trigger
 			// L2 = negative pole, R2 = positive pole
+			// Use deadzone (>1000) to reject resting axis noise
 			if(strstr(inputName[inputId], "LeftTrigger") != NULL)
 			{
-				if(input.value < 0) { mSkipAxis = true; return false; }
-				else if(input.value > 0) return true;
+				if(input.value < -1000) { mSkipAxis = true; return false; }
+				else if(input.value > 1000) return true;
 			}
 			else if(strstr(inputName[inputId], "RightTrigger") != NULL)
 			{
-				if(input.value > 0) { mSkipAxis = true; return false; }
-				else if(input.value < 0) return true;
+				if(input.value > 1000) { mSkipAxis = true; return false; }
+				else if(input.value < -1000) return true;
 			}
 		}
 		else if(genericTrigger || anbernicTrigger)
