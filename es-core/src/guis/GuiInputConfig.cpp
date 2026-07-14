@@ -3,6 +3,8 @@
 #include "Log.h"
 #include "Renderer.h"
 #include "components/TextComponent.h"
+#include "components/ButtonComponent.h"
+#include "components/MenuComponent.h"
 #include "InputManager.h"
 #include "Util.h"
 #include <sstream>
@@ -14,7 +16,7 @@ static const bool inputSkippable[inputCount] = { false,false,false,false,true,tr
 static const char* inputDispName[inputCount] = { "D-PAD UP","D-PAD DOWN","D-PAD LEFT","D-PAD RIGHT","START","SELECT","BUTTON A / EAST","BUTTON B / SOUTH","BUTTON X / NORTH","BUTTON Y / WEST","LEFT SHOULDER","RIGHT SHOULDER","LEFT TRIGGER","RIGHT TRIGGER","LEFT THUMB","RIGHT THUMB","LEFT ANALOG UP","LEFT ANALOG DOWN","LEFT ANALOG LEFT","LEFT ANALOG RIGHT","RIGHT ANALOG UP","RIGHT ANALOG DOWN","RIGHT ANALOG LEFT","RIGHT ANALOG RIGHT","HOTKEY" };
 #define HOLD_TO_SKIP_MS 1000
 
-GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mBackground(window, ":/frame.png"), mGrid(window, Eigen::Vector2i(1, 7)), mTargetConfig(target), mHoldingInput(false), mSkipAxis(false)
+GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfigureAll, const std::function<void()>& okCallback) : GuiComponent(window), mBackground(window, ":/frame.png"), mGrid(window, Eigen::Vector2i(1, 7)), mTargetConfig(target), mHoldingInput(false), mSkipAxis(false), mLastTriggerAssignTime(0)
 {
 	LOG(LogInfo) << "Configuring device " << target->getDeviceId() << " (" << target->getDeviceName() << ").";
 	if(reconfigureAll) target->clear();
@@ -52,17 +54,66 @@ GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfi
 			if(config != mTargetConfig) return false;
 			if(!mConfiguringRow) { if(config->isMappedTo("a", input) && input.value) { mList->stopScrolling(); mConfiguringRow = true; setPress(mapping); return true; } return false; }
 			if(filterTrigger(input, config)) return false;
+			// PS4 DS4: after a trigger is assigned, ignore resting signals for 200ms
+			// Resting signals arrive on ALL rows (LeftThumb, RightThumb, etc.), not just trigger rows
+			if(input.type == TYPE_AXIS)
+			{
+				Uint32 now = SDL_GetTicks();
+				if(now - mLastTriggerAssignTime < 200 && input.value > -2 && input.value < 2)
+				{
+					LOG(LogInfo) << "COOLDOWN filtered resting row=" << i << " name=" << inputName[i] << " value=" << input.value << " ms=" << (now - mLastTriggerAssignTime);
+					return true;
+				}
+			}
+			LOG(LogInfo) << "INPUT EVENT row=" << i << " name=" << inputName[i] << " type=" << (input.type == TYPE_BUTTON ? "BTN" : input.type == TYPE_AXIS ? "AXIS" : "HAT") << " id=" << input.id << " value=" << input.value << " holding=" << mHoldingInput;
 			if(mHoldingInput) mAllInputs.push_back(input);
-			if(input.value != 0) { if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; mAllInputs.clear(); mAllInputs.push_back(input); return true; }
-			else { if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type) return true; mHoldingInput = false;
-				if(mHeldInput.type == TYPE_BUTTON) { auto altAxis = std::find_if(mAllInputs.begin(), mAllInputs.end(), [&](const Input& x) { return x.device == mHeldInput.device && x.type == TYPE_AXIS; }); if(altAxis != mAllInputs.end()) { int axisId = altAxis->id; int axisCount = 0; for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) axisCount++; } if(axisCount >= 2) { for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) { mHeldInput = x; break; } } } }
+			if(input.value != 0) {
+				if(mHoldingInput) return true;
+				mHoldingInput = true;
+				mHeldInput = input;
+				mHeldTime = 0;
+				mHeldInputId = i;
 				mAllInputs.clear();
-				if(assign(mHeldInput, i)) rowDone(); return true; }
+				mAllInputs.push_back(input);
+				return true;
+			}
+			if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type)
+				return true;
+			mHoldingInput = false;
+			if(mHeldInput.type == TYPE_BUTTON) {
+				LOG(LogInfo) << "SWAP CHECK: held was BUTTON id=" << mHeldInput.id << " looking for AXIS in mAllInputs (" << mAllInputs.size() << " events)";
+				auto altAxis = std::find_if(mAllInputs.begin(), mAllInputs.end(), [&](const Input& x) { return x.device == mHeldInput.device && x.type == TYPE_AXIS; });
+				if(altAxis != mAllInputs.end()) {
+					int axisId = altAxis->id;
+					int axisCount = 0;
+					for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) axisCount++; }
+					if(axisCount >= 2) { for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) { mHeldInput = x; LOG(LogInfo) << "SWAP: button->axis id=" << axisId << " count=" << axisCount; break; } } }
+				else { LOG(LogInfo) << "NO SWAP: axisCount=" << axisCount << " (need >= 2)"; }
+				}
+			}
+			mAllInputs.clear();
+			LOG(LogInfo) << "ASSIGN: mapping " << inputName[i] << " to type=" << (mHeldInput.type == TYPE_BUTTON ? "BTN" : "AXIS") << " id=" << mHeldInput.id << " value=" << mHeldInput.value;
+			if(assign(mHeldInput, i)) { mLastTriggerAssignTime = SDL_GetTicks(); rowDone(); }
+			return true;
 		};
 		mList->addRow(row);
 	}
 	if(mConfiguringAll) setPress(mMappings.front());
 	mList->setCursorChangedCallback([this](CursorState state) { mSubtitle2->setOpacity(inputSkippable[mList->getCursorId()] * 255); });
+
+	// OK and CANCEL buttons
+	mOkCallback = okCallback;
+	std::vector<std::shared_ptr<ButtonComponent>> buttons;
+	buttons.push_back(std::make_shared<ButtonComponent>(mWindow, "OK", "ok", [this] {
+		InputManager::getInstance()->writeDeviceConfig(mTargetConfig);
+		if(mOkCallback) mOkCallback();
+		delete this;
+	}));
+	buttons.push_back(std::make_shared<ButtonComponent>(mWindow, "CANCEL", "cancel", [this] {
+		delete this;
+	}));
+	mButtonGrid = makeButtonGrid(mWindow, buttons);
+	mGrid.setEntry(mButtonGrid, Eigen::Vector2i(0, 6), true, false);
 
 	setSize(Renderer::getScreenWidth() * 0.6f, Renderer::getScreenHeight() * 0.75f);
 	setPosition((Renderer::getScreenWidth() - mSize.x()) / 2, (Renderer::getScreenHeight() - mSize.y()) / 2);
@@ -75,7 +126,8 @@ void GuiInputConfig::onSizeChanged()
 	mGrid.setRowHeightPerc(1, mTitle->getFont()->getHeight()*0.75f / mSize.y());
 	mGrid.setRowHeightPerc(2, mSubtitle1->getFont()->getHeight() / mSize.y());
 	mGrid.setRowHeightPerc(3, mSubtitle2->getFont()->getHeight() / mSize.y());
-	mGrid.setRowHeightPerc(5, 0.65f);
+	mGrid.setRowHeightPerc(5, (mList->getRowHeight(0) * 5 + 2) / mSize.y());
+	mGrid.setRowHeightPerc(6, mButtonGrid->getSize().y() / mSize.y());
 }
 
 void GuiInputConfig::update(int deltaTime)

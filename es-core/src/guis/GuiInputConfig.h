@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 class TextComponent;
+class ButtonComponent;
 class GuiInputConfig : public GuiComponent
 {
 public:
@@ -32,9 +33,12 @@ private:
 	Input mHeldInput;
 	std::vector<Input> mAllInputs;
 	int mHeldTime, mHeldInputId;
+	Uint32 mLastTriggerAssignTime;
 	std::shared_ptr<TextComponent> mTitle;
 	std::shared_ptr<TextComponent> mSubtitle1;
 	std::shared_ptr<TextComponent> mSubtitle2;
 	std::shared_ptr<ComponentList> mList;
+	std::shared_ptr<ComponentGrid> mButtonGrid;
 	std::vector<std::shared_ptr<TextComponent>> mMappings;
+	std::function<void()> mOkCallback;
 };
