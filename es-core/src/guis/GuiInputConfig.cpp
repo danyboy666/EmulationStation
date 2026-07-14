@@ -142,7 +142,7 @@ void GuiInputConfig::update(int deltaTime)
 
 void GuiInputConfig::rowDone()
 {
-	if(mConfiguringAll) { if(!mList->moveCursor(1)) { mConfiguringAll = false; mConfiguringRow = false; InputManager::getInstance()->writeDeviceConfig(mTargetConfig); delete this; } else setPress(mMappings.at(mList->getCursorId())); }
+	if(mConfiguringAll) { if(!mList->moveCursor(1)) { mConfiguringAll = false; mConfiguringRow = false; mGrid.moveCursor(Eigen::Vector2i(0, 1)); } else setPress(mMappings.at(mList->getCursorId())); }
 	else mConfiguringRow = false;
 }
 
