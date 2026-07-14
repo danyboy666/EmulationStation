@@ -6,6 +6,7 @@
 #include "InputManager.h"
 #include "Util.h"
 #include <sstream>
+#include <algorithm>
 
 static const int inputCount = 25;
 static const char* inputName[inputCount] = { "Up","Down","Left","Right","Start","Select","A","B","X","Y","LeftShoulder","RightShoulder","LeftTrigger","RightTrigger","LeftThumb","RightThumb","LeftAnalogUp","LeftAnalogDown","LeftAnalogLeft","LeftAnalogRight","RightAnalogUp","RightAnalogDown","RightAnalogLeft","RightAnalogRight","HotKeyEnable" };
@@ -49,10 +50,14 @@ GuiInputConfig::GuiInputConfig(Window* window, InputConfig* target, bool reconfi
 		mMappings.push_back(mapping);
 		row.input_handler = [this, i, mapping](InputConfig* config, Input input) -> bool {
 			if(config != mTargetConfig) return false;
-			if(!mConfiguringRow) { if(config->isMappedTo("a", input) && input.value) { mConfiguringRow = true; setPress(mapping); return true; } return false; }
-			if(filterTrigger(input, config, i)) return false;
-			if(input.value != 0) { if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; return true; }
-			else { if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type) return true; mHoldingInput = false; if(assign(mHeldInput, i)) rowDone(); return true; }
+			if(!mConfiguringRow) { if(config->isMappedTo("a", input) && input.value) { mList->stopScrolling(); mConfiguringRow = true; setPress(mapping); return true; } return false; }
+			if(filterTrigger(input, config)) return false;
+			if(mHoldingInput) mAllInputs.push_back(input);
+			if(input.value != 0) { if(mHoldingInput) return true; mHoldingInput = true; mHeldInput = input; mHeldTime = 0; mHeldInputId = i; mAllInputs.clear(); mAllInputs.push_back(input); return true; }
+			else { if(!mHoldingInput || mHeldInput.device != input.device || mHeldInput.id != input.id || mHeldInput.type != input.type) return true; mHoldingInput = false;
+				if(mHeldInput.type == TYPE_BUTTON) { auto altAxis = std::find_if(mAllInputs.begin(), mAllInputs.end(), [&](const Input& x) { return x.device == mHeldInput.device && x.type == TYPE_AXIS; }); if(altAxis != mAllInputs.end()) { int axisId = altAxis->id; int axisCount = 0; for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) axisCount++; } if(axisCount >= 2) { for(auto& x : mAllInputs) { if(x.device == mHeldInput.device && x.type == TYPE_AXIS && x.id == axisId) { mHeldInput = x; break; } } } }
+				mAllInputs.clear();
+				if(assign(mHeldInput, i)) rowDone(); return true; }
 		};
 		mList->addRow(row);
 	}
@@ -99,80 +104,8 @@ bool GuiInputConfig::assign(Input input, int inputId)
 	setAssignedTo(mMappings.at(inputId), input); input.configured = true; mTargetConfig->mapInput(inputName[inputId], input); return true;
 }
 
-bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId)
+bool GuiInputConfig::filterTrigger(Input input, InputConfig* config)
 {
-#if defined(__linux__)
-	// on Linux, some gamepads return both an analog axis and a digital button for the trigger;
-	// we want the analog axis only, so this function removes the button press event
-	bool isPlaystation = (
-		strstr(config->getDeviceName().c_str(), "PLAYSTATION") != NULL
-		|| strstr(config->getDeviceName().c_str(), "Sony Interactive") != NULL // Official dualshock 4
-		|| strstr(config->getDeviceName().c_str(), "PS3 Ga") != NULL
-		|| strstr(config->getDeviceName().c_str(), "PS(R) Ga") != NULL
-		|| strstr(config->getDeviceName().c_str(), "PS4") != NULL
-		|| strstr(config->getDeviceName().c_str(), "Wireless Controller") != NULL
-		// BigBen kid's PS3 gamepad 146b:0902, matched on SDL GUID because its name "Bigben Interactive Bigben Game Pad" may be too generic
-		|| strcmp(config->getDeviceGUIDString().c_str(), "030000006b1400000209000011010000") == 0
-		|| strcmp(config->getDeviceGUIDString().c_str(), "03008fe54c050000cc09000000016800") == 0 // DS4 V2
-	);
-	bool isAnbernic = (
-		strcmp(config->getDeviceGUIDString().c_str(), "03004ab1020500000913000010010000") == 0 // Anbernic RG P01 has same issue
-	);
-
-	if(isAnbernic)
-	{
-		// Anbernic: digital triggers are unwanted
-		if((input.id == 8 || input.id == 9) && input.type == TYPE_BUTTON)
-		{
-			mHoldingInput = false;
-			return true;
-		}
-	}
-
-	// PS4 DS4: triggers are on axes 4 (L2) and 5 (R2)
-	// Filter by axis ID: LeftTrigger only accepts axis 4, RightTrigger only accepts axis 5
-	// This prevents L2 release overshoot from poisoning RightTrigger row
-	bool genericTrigger = isPlaystation ? false : (input.id == 2 || input.id == 5);
-	bool anbernicTrigger = isAnbernic && (input.id == 4 || input.id == 5);
-
-	if(input.type == TYPE_AXIS)
-	{
-		if(isPlaystation)
-		{
-			// PS4 DS4: both triggers share axis 4, polarity determines which trigger
-			// L2 = negative pole, R2 = positive pole
-			// Use deadzone (>1000) to reject resting axis noise
-			if(strstr(inputName[inputId], "LeftTrigger") != NULL)
-			{
-				if(input.value < -1000) { mSkipAxis = true; return false; }
-				else if(input.value > 1000) return true;
-			}
-			else if(strstr(inputName[inputId], "RightTrigger") != NULL)
-			{
-				if(input.value > 1000) { mSkipAxis = true; return false; }
-				else if(input.value < -1000) return true;
-			}
-		}
-		else if(genericTrigger || anbernicTrigger)
-		{
-			// Non-PlayStation: use upstream polarity filtering
-			if(strstr(inputName[inputId], "Trigger") != NULL)
-			{
-				if(input.value == 1) mSkipAxis = true;
-				else if(input.value == -1) return true;
-			}
-			else if(mSkipAxis)
-			{
-				mSkipAxis = false;
-				return true;
-			}
-		}
-	}
-#else
-	(void)input;
-	(void)config;
-	(void)inputId;
-#endif
 	return false;
 }
 
