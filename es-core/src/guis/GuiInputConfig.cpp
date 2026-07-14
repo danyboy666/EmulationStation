@@ -139,14 +139,18 @@ bool GuiInputConfig::filterTrigger(Input input, InputConfig* config, int inputId
 	{
 		if(isPlaystation)
 		{
-			// PS4: accept only the correct axis per trigger row
-			if(strstr(inputName[inputId], "LeftTrigger") != NULL && input.id == 4)
-				return false;  // accept axis 4 on LeftTrigger row
-			else if(strstr(inputName[inputId], "RightTrigger") != NULL && input.id == 5)
-				return false;  // accept axis 5 on RightTrigger row
-			// reject everything else on trigger rows
-			else if(strstr(inputName[inputId], "Trigger") != NULL)
-				return true;
+			// PS4 DS4: both triggers share axis 4, polarity determines which trigger
+			// L2 = negative pole, R2 = positive pole
+			if(strstr(inputName[inputId], "LeftTrigger") != NULL)
+			{
+				if(input.value < 0) { mSkipAxis = true; return false; }
+				else if(input.value > 0) return true;
+			}
+			else if(strstr(inputName[inputId], "RightTrigger") != NULL)
+			{
+				if(input.value > 0) { mSkipAxis = true; return false; }
+				else if(input.value < 0) return true;
+			}
 		}
 		else if(genericTrigger || anbernicTrigger)
 		{
